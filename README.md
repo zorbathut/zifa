@@ -1,0 +1,1 @@
+This is a utility Zorba wrote to do stuff with the FF14 pricing data. It is not intended for public use, but, I mean, if you've found it, go wild I guess.
