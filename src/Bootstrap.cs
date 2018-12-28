@@ -5,6 +5,9 @@ public class Bootstrap
     {
         Api.Init();
 
-        Dbg.Inf(Api.Retrieve("GCScripShopItem").ToString());
+        foreach (var item in Api.List("GCScripShopItem"))
+        {
+            Dbg.Inf(item.ToString());
+        }
     }
 }
