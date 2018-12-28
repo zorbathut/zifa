@@ -20,9 +20,14 @@ public class Bootstrap
         {
             var itemData = Api.Retrieve(item["Url"].ToString(), new Dictionary<string, string>() { { "columns", "CostGCSeals,Item.IsUntradable,Item.ID,Item.Name" } });
 
+            if (itemData["Item"]["IsUntradable"].Value<string>() != "")
+            {
+                continue;
+            }
+
             int id = itemData["Item"]["ID"].Value<int>();
 
-            if (itemData["Item"]["IsUntradable"].Value<string>() == "" && !inspected.Contains(id))
+            if (!inspected.Contains(id))
             {
                 inspected.Add(id);
 
