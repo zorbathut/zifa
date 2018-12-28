@@ -1,4 +1,5 @@
 
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -9,11 +10,11 @@ public static class Api
 
     public static void Init()
     {
-        Key = File.ReadAllText(@"../../../../appkey.txt");
+        Key = File.ReadAllText(@"../../../appkey.txt");
     }
 
-    public static string Retrieve(string path)
+    public static JObject Retrieve(string path)
     {
-        return Util.GetURLContents($"https://xivapi.com/{path}?key={Key}");
+        return JObject.Parse(Util.GetURLContents($"https://xivapi.com/{path}?key={Key}"));
     }
 }
