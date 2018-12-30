@@ -80,4 +80,14 @@ public static class Util
 
         return elements[0].price;
     }
+
+    public static IEnumerable<T> Concat<T>(this IEnumerable<T> first, T added)
+    {
+        foreach (var item in first)
+        {
+            yield return item;
+        }
+
+        yield return added;
+    }
 }

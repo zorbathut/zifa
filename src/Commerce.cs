@@ -8,7 +8,7 @@ public static class Commerce
 {
     public static int ValueMarket(int id, bool hq)
     {
-        var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history", new Dictionary<string, string>() { { "columns", "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ" } });
+        var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
 
         var history = results["History"].OfType<JObject>();
 

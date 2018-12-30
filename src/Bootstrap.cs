@@ -19,7 +19,7 @@ public class Bootstrap
         var inspected = new HashSet<int>();
         foreach (var item in Api.List("/GCScripShopItem"))
         {
-            var itemData = Api.Retrieve(item["Url"].ToString(), new Dictionary<string, string>() { { "columns", "CostGCSeals,Item.IsUntradable,Item.ID,Item.Name" } });
+            var itemData = Api.Retrieve(item["Url"].ToString());
 
             if (!itemData.ContainsKey("Item") || itemData["Item"]["ID"].Type == JTokenType.Null)
             {
