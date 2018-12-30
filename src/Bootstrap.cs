@@ -15,6 +15,11 @@ public class Bootstrap
         Cache.Init();
         Api.Init();
 
+        DoGCScripAnalysis();
+    }
+
+    public static void DoGCScripAnalysis()
+    {
         var results = new List<Result>();
         var inspected = new HashSet<int>();
         foreach (var item in Api.List("/GCScripShopItem"))
