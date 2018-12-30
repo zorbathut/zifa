@@ -31,7 +31,7 @@ public static class Category
         {
             regex = new Regex("^/item/.*$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0),
-            columns = "PriceLow,PriceMid,GameContentLinks.GilShopItem,Name",
+            columns = "PriceLow,PriceMid,GameContentLinks.GilShopItem,Name,IsUntradable",
         },
         new CategoryInfo
         {

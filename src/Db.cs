@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 public class Item
 {
     public string name;
+    public bool untradable;
 }
 
 public static class Db
@@ -14,7 +15,8 @@ public static class Db
 
         return new Item
         {
-            name = results["Name"].Value<string>()
+            name = results["Name"].Value<string>(),
+            untradable = results["IsUntradable"].Value<bool>(),
         };
     }
 }

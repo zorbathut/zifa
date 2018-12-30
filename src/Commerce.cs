@@ -8,6 +8,13 @@ public static class Commerce
 {
     public static int ValueMarket(int id, bool hq)
     {
+        // just get this out of the way first; it's a much much cheaper query
+        var itemdb = Db.Item(id);
+        if (itemdb.untradable)
+        {
+            return 0;
+        }
+
         var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
 
         var history = results["History"].OfType<JObject>();
