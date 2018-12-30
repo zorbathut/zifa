@@ -37,4 +37,47 @@ public static class Util
     {
         return reader.GetFieldValue<T>(reader.GetOrdinal(label));
     }
+
+    public class Element
+    {
+        public int price;
+        public int count;
+    }
+    public static int Median(this IEnumerable<Element> elements_enum)
+    {
+        var elements = elements_enum.ToList();
+        elements.Sort((lhs, rhs) => lhs.price < rhs.price);
+
+        if (elements.Count == 0)
+        {
+            // okay then
+            return 0;
+        }
+
+        while (elements.Count > 1)
+        {
+            int mid = (elements[0].price + elements[elements.Count - 1].price) / 2;
+            int removal = Math.Min(elements[0].count, elements[elements.Count - 1].count);
+
+            elements[0].count -= removal;
+            elements[elements.Count - 1].count -= removal;
+
+            if (elements[0].count == 0)
+            {
+                elements.RemoveAt(0);
+            }
+            if (elements[elements.Count - 1].count == 0)
+            {
+                elements.RemoveAt(elements.Count - 1);
+            }
+
+            if (elements.Count == 0)
+            {
+                // whoops
+                return mid;
+            }
+        }
+
+        return elements[0].price;
+    }
 }
