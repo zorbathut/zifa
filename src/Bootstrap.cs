@@ -37,7 +37,7 @@ public class Bootstrap
             {
                 inspected.Add(id);
 
-                var val = Api.EstimateValue(id);
+                var val = Commerce.ValueMarket(id);
                 var seals = itemData["CostGCSeals"].Value<int>();
 
                 string name = itemData["Item"]["Name"].Value<string>();
