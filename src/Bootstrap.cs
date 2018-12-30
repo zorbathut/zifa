@@ -15,7 +15,8 @@ public class Bootstrap
         Cache.Init();
         Api.Init();
 
-        DoGCScripAnalysis();
+        //DoGCScripAnalysis();
+        DoRecipeAnalysis("blacksmith", 1);
     }
 
     public static void DoGCScripAnalysis()
@@ -57,6 +58,45 @@ public class Bootstrap
         foreach (var result in results)
         {
             Dbg.Inf($"{result.gps:F2}: {result.name}");
+        }
+    }
+
+    public static void DoRecipeAnalysis(string classid, int levelmin)
+    {
+        foreach (var item in Api.List("/Recipe"))
+        {
+            var recipeData = Api.Retrieve(item["Url"].ToString());
+
+            string recipeName = recipeData["Name"].Value<string>();
+            int itemId = recipeData["ItemResultTargetID"].Value<int>();
+
+            string className = recipeData["ClassJob"]["Name"].Value<string>();
+            int classLevel = recipeData["RecipeLevelTable"]["ClassJobLevel"].Value<int>();
+
+            // we gotta do more, man
+            if (className != classid || classLevel < levelmin || classLevel >= levelmin + 5)
+            {
+                continue;
+            }
+
+            int expectedRevenue = Commerce.ValueSell(itemId, false);
+            Dbg.Inf($"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false)}/{Commerce.ValueSell(itemId, true)}");
+            int tcost = 0;
+            for (int i = 0; i < 9; ++i)
+            {
+                int itemamount = recipeData[$"AmountIngredient{i}"].Value<int>();
+                int itemid = recipeData[$"ItemIngredient{i}TargetID"].Value<int>();
+
+                if (itemamount > 0)
+                {
+                    string source;
+                    int cost = Commerce.ValueBuy(itemid, false, out source);
+                    Dbg.Inf($"  {Db.Item(itemid).name}: buy from {source} for {cost}x{itemamount}");
+
+                    tcost += itemamount * cost;
+                }
+            }
+            Dbg.Inf($"  Total cost: {tcost}, total profit {expectedRevenue - tcost}");
         }
     }
 }

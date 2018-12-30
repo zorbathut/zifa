@@ -31,13 +31,25 @@ public static class Category
         {
             regex = new Regex("^/item/.*$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0),
-            columns = "PriceLow,PriceHigh,GameContentLinks.GilShop",
+            columns = "PriceLow,PriceMid,GameContentLinks.GilShopItem,Name",
         },
         new CategoryInfo
         {
             regex = new Regex("^/market/.*/history$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             cacheExpiry = new TimeSpan(0, 60, 0),
             columns = "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ",
+        },
+        new CategoryInfo
+        {
+            regex = new Regex("^/recipe$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0),
+            columns = "Url",
+        },
+        new CategoryInfo
+        {
+            regex = new Regex("^/recipe/.*$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0),
+            columns = "AmountIngredient0,AmountIngredient1,AmountIngredient2,AmountIngredient3,AmountIngredient4,AmountIngredient5,AmountIngredient6,AmountIngredient7,AmountIngredient8,AmountIngredient9,ItemIngredient0TargetID,ItemIngredient1TargetID,ItemIngredient2TargetID,ItemIngredient3TargetID,ItemIngredient4TargetID,ItemIngredient5TargetID,ItemIngredient6TargetID,ItemIngredient7TargetID,ItemIngredient8TargetID,ItemIngredient9TargetID,ClassJob.Name,RecipeLevelTable.ClassJobLevel,ItemResultTargetID,Name",
         },
     };
     private static readonly CategoryInfo CategoryFallback = new CategoryInfo() { cacheExpiry = new TimeSpan(0, 10, 0) };

@@ -36,39 +36,67 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
-    public static int ValueSell(int id, bool hq)
+    public static int ValueSell(int id, bool hq, out string destination)
     {
         var results = Api.Retrieve($"/item/{id}");
 
-        int vendorprice = results["PriceLow"].Value<int>();
+        int bestprice = results["PriceLow"].Value<int>();
         if (hq)
         {
             // This seems to be the right equation
-            vendorprice = (int)Math.Ceiling(vendorprice * 1.1);
+            bestprice = (int)Math.Ceiling(bestprice * 1.1);
+        }
+        destination = "vendor";
+
+        int market = (int)(ValueMarket(id, hq) * 0.95);
+        if (market > 0 && market > bestprice)
+        {
+            bestprice = market;
+            destination = "market";
         }
 
-        return Math.Max(vendorprice, (int)(ValueMarket(id, hq) * 0.95));
+        return bestprice;
     }
 
-    public static int ValueBuy(int id, bool hq)
+    public static int ValueSell(int id, bool hq)
+    {
+        string _;
+        return ValueSell(id, hq, out _);
+    }
+
+    public static int ValueBuy(int id, bool hq, out string source)
     {
         // can't buy HQ stuff from vendors
         if (hq)
         {
+            source = "market";
             return (int)(ValueMarket(id, hq) * 1.05);
         }
 
         var results = Api.Retrieve($"/item/{id}");
 
         int bestprice = (int)(ValueMarket(id, hq) * 1.05);
+        source = "market";
 
-        if (results["GameContentLinks"]["GilShop"].Type != JTokenType.Null)
+        if (results["GameContentLinks"]["GilShopItem"].Type != JTokenType.Null)
         {
             // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
             // Look for errors.
-            bestprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
+            int vendorprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
+            if (vendorprice <= bestprice)
+            {
+                bestprice = vendorprice;
+                source = "vendor";
+            }
         }
 
         return bestprice;
     }
+
+    public static int ValueBuy(int id, bool hq)
+    {
+        string _;
+        return ValueBuy(id, hq, out _);
+    }
+
 }
