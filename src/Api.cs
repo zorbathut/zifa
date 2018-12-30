@@ -44,6 +44,7 @@ public static class Api
         }
     }
 
+    private static long NextQuery = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     public static JObject Retrieve(string path, Dictionary<string, string> parameters = null)
     {
         if (parameters == null)
@@ -68,7 +69,11 @@ public static class Api
         if (result == null)
         {
             // Avoid the ten-query-per-second limit
-            Thread.Sleep(110);
+            while (DateTimeOffset.Now.ToUnixTimeMilliseconds() < NextQuery)
+            {
+                Thread.Sleep(0);
+            }
+            NextQuery += 110;
 
             string url = Prefix + urlbody;
             Dbg.Inf($"Querying {url}");
