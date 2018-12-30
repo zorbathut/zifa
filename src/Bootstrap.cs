@@ -37,7 +37,7 @@ public class Bootstrap
             {
                 inspected.Add(id);
 
-                var val = Commerce.ValueMarket(id, false);
+                var val = Commerce.ValueSell(id, false);
                 var seals = itemData["CostGCSeals"].Value<int>();
 
                 string name = itemData["Item"]["Name"].Value<string>();

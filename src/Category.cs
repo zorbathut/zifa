@@ -29,7 +29,13 @@ public static class Category
         },
         new CategoryInfo
         {
-            regex = new Regex("^/market/.*$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            regex = new Regex("^/item/.*$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0),
+            columns = "PriceLow,PriceHigh,GameContentLinks.GilShop",
+        },
+        new CategoryInfo
+        {
+            regex = new Regex("^/market/.*/history$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             cacheExpiry = new TimeSpan(0, 60, 0),
             columns = "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ",
         },

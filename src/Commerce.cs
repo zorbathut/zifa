@@ -35,4 +35,40 @@ public static class Commerce
 
         return hq ? hqp : lqp;
     }
+
+    public static int ValueSell(int id, bool hq)
+    {
+        var results = Api.Retrieve($"/item/{id}");
+
+        int vendorprice = results["PriceLow"].Value<int>();
+        if (hq)
+        {
+            // This seems to be the right equation
+            vendorprice = (int)Math.Ceiling(vendorprice * 1.1);
+        }
+
+        return Math.Max(vendorprice, (int)(ValueMarket(id, hq) * 0.95));
+    }
+
+    public static int ValueBuy(int id, bool hq)
+    {
+        // can't buy HQ stuff from vendors
+        if (hq)
+        {
+            return (int)(ValueMarket(id, hq) * 1.05);
+        }
+
+        var results = Api.Retrieve($"/item/{id}");
+
+        int bestprice = (int)(ValueMarket(id, hq) * 1.05);
+
+        if (results["GameContentLinks"]["GilShop"].Type != JTokenType.Null)
+        {
+            // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
+            // Look for errors.
+            bestprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
+        }
+
+        return bestprice;
+    }
 }
