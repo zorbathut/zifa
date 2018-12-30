@@ -58,7 +58,7 @@ public static class Cache
 
     private static readonly Dictionary<string, CategoryInfo> CategoryData = new Dictionary<string, CategoryInfo>()
     {
-        { "market", new CategoryInfo() { cacheExpiry = new TimeSpan(0, 10, 0) } },
+        { "market", new CategoryInfo() { cacheExpiry = new TimeSpan(0, 60, 0) } },
         { "gcscripshopitem", new CategoryInfo() { cacheExpiry = new TimeSpan(1000, 0, 0, 0, 0) } },
     };
     private static readonly CategoryInfo CategoryFallback = new CategoryInfo() { cacheExpiry = new TimeSpan(0, 10, 0) };
