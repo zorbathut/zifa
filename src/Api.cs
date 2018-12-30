@@ -49,13 +49,21 @@ public static class Api
             parameters = new Dictionary<string, string>();
         }
 
-        // Avoid the ten-query-per-second limit
-        Thread.Sleep(120);
-
         string paramlist = parameters.Concat(KeyDict).Select(kvp => $"{kvp.Key}={kvp.Value}").Aggregate((lhs, rhs) => $"{lhs}&{rhs}");
         string url = $"https://xivapi.com{path}?{paramlist}"; // missing / between xivapi.com and path is because xivapi really likes its prefixed /'s
-        Dbg.Inf($"Querying {url}");
-        return JObject.Parse(Util.GetURLContents(url));
+
+        string result = Cache.GetCacheEntry(url);
+        if (result == null)
+        {
+            // Avoid the ten-query-per-second limit
+            Thread.Sleep(110);
+
+            Dbg.Inf($"Querying {url}");
+            result = Util.GetURLContents(url);
+            Cache.StoreCacheEntry(url, result);
+        }
+
+        return JObject.Parse(result);
     }
 
     

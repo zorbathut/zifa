@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -25,5 +26,15 @@ public static class Util
         {
             collection.Add(elem);
         }
+    }
+
+    public static void ExecuteNonQuery(this SQLiteConnection connection, string command)
+    {
+        new SQLiteCommand(command, connection).ExecuteNonQuery();
+    }
+
+    public static T GetField<T>(this SQLiteDataReader reader, string label)
+    {
+        return reader.GetFieldValue<T>(reader.GetOrdinal(label));
     }
 }

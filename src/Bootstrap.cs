@@ -12,6 +12,7 @@ public class Bootstrap
 
     public static void Main(string[] args)
     {
+        Cache.Init();
         Api.Init();
 
         var results = new List<Result>();
