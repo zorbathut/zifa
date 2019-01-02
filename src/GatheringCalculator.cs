@@ -122,20 +122,33 @@ public static class GatheringCalculator
         public int actionOutput;
     }
 
+    public struct BakedResult
+    {
+        public int output;
+        public string description;
+    }
+
     public static void Process(int lootChance, int hqChance, int startingGp, int startingAttempts, bool focusOnHq)
     {
-        var globalState = new GlobalState() { baseChance = lootChance, baseHQ = hqChance, lookingForHQ = focusOnHq, cache = new Dictionary<GatheringState, GatheringResult>() };
         var startState = new GatheringState() { remainingGp = startingGp, remainingAttempts = startingAttempts };
+        var globalState = new GlobalState() { baseChance = lootChance, baseHQ = hqChance, lookingForHQ = focusOnHq, cache = new Dictionary<GatheringState, GatheringResult>() };
 
+        var bakedResult = GetBakedResult(startState, globalState);
+
+        Dbg.Inf($"Expected result: {bakedResult.output/10000f:F2}{bakedResult.description}");
+    }
+
+    private static BakedResult GetBakedResult(GatheringState startState, GlobalState globalState)
+    {
         var summary = GetBestStep(startState, globalState);
 
-        Dbg.Inf($"Expected result: {summary.fullOutput/10000f:F2}");
+        var output = new BakedResult() { output = summary.fullOutput };
 
         var currentState = startState;
         while (true)
         {
             var result = GetBestStep(currentState, globalState);
-            Dbg.Inf($"  Action: {result.nextAction}");
+            output.description += $"\n  Action: {result.nextAction}";
             currentState = result.nextState;
 
             if (result.nextAction == Action.Done)
@@ -143,6 +156,8 @@ public static class GatheringCalculator
                 break;
             }
         }
+
+        return output;
     }
 
     private static GatheringResult GetBestStep(GatheringState state, GlobalState globalState)
