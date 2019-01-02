@@ -5,12 +5,6 @@ using System.Linq;
 
 public static class GatheringCalculator
 {
-    const int BaseChance = 90;
-    const int BaseHQ = 12;
-    const int StartingGP = 500;
-    const int StartingAttempts = 5;
-    const bool LookingForHQ = true;
-
     private enum Action
     {
         Done,
@@ -59,6 +53,15 @@ public static class GatheringCalculator
     private static ActionInfo GetActionInfo(this Action action)
     {
         return ActionInfos.Where(ai => ai.action == action).FirstOrDefault();
+    }
+
+    private struct GlobalState
+    {
+        public int baseChance;
+        public int baseHQ;
+        public bool lookingForHQ;
+
+        public Dictionary<GatheringState, GatheringResult> cache;
     }
 
     private struct GatheringState
@@ -119,17 +122,19 @@ public static class GatheringCalculator
         public int actionOutput;
     }
 
-    public static void Process()
+    public static void Process(int lootChance, int hqChance, int startingGp, int startingAttempts, bool focusOnHq)
     {
-        var startState = new GatheringState() { remainingGp = StartingGP, remainingAttempts = StartingAttempts };
-        var summary = GetBestStep(startState);
+        var globalState = new GlobalState() { baseChance = lootChance, baseHQ = hqChance, lookingForHQ = focusOnHq, cache = new Dictionary<GatheringState, GatheringResult>() };
+        var startState = new GatheringState() { remainingGp = startingGp, remainingAttempts = startingAttempts };
+
+        var summary = GetBestStep(startState, globalState);
 
         Dbg.Inf($"Expected result: {summary.fullOutput/10000f:F2}");
 
         var currentState = startState;
         while (true)
         {
-            var result = GetBestStep(currentState);
+            var result = GetBestStep(currentState, globalState);
             Dbg.Inf($"  Action: {result.nextAction}");
             currentState = result.nextState;
 
@@ -140,8 +145,7 @@ public static class GatheringCalculator
         }
     }
 
-    private static Dictionary<GatheringState, GatheringResult> Cache = new Dictionary<GatheringState, GatheringResult>();
-    private static GatheringResult GetBestStep(GatheringState state)
+    private static GatheringResult GetBestStep(GatheringState state, GlobalState globalState)
     {
         if (state.remainingAttempts == 0)
         {
@@ -149,12 +153,12 @@ public static class GatheringCalculator
             return new GatheringResult();
         }
 
-        if (!Cache.ContainsKey(state))
+        if (!globalState.cache.ContainsKey(state))
         {
             var best = new GatheringResult();
-            foreach (var actionResult in ExecuteActions(state))
+            foreach (var actionResult in ExecuteActions(state, globalState))
             {
-                var chainedResult = GetBestStep(actionResult.nextState);
+                var chainedResult = GetBestStep(actionResult.nextState, globalState);
 
                 int fullOutput = chainedResult.fullOutput + actionResult.actionOutput;
                 int fullMoves = chainedResult.moves + 1;
@@ -167,13 +171,13 @@ public static class GatheringCalculator
                 }
             }
 
-            Cache[state] = best;
+            globalState.cache[state] = best;
         }
 
-        return Cache[state];
+        return globalState.cache[state];
     }
 
-    private static IEnumerable<ActionResult> ExecuteActions(GatheringState state)
+    private static IEnumerable<ActionResult> ExecuteActions(GatheringState state, GlobalState globalState)
     {
         foreach (var actionInfo in ActionInfos)
         {
@@ -191,8 +195,8 @@ public static class GatheringCalculator
 
             if (actionInfo.action == Action.Gather)
             {
-                int actualChance = BaseChance;
-                int actualHq = BaseHQ;
+                int actualChance = globalState.baseChance;
+                int actualHq = globalState.baseHQ;
                 int actualResults = 1;
 
                 foreach (var buff in ActionInfos)
@@ -208,7 +212,7 @@ public static class GatheringCalculator
                 actualChance = Math.Min(actualChance, 100);
                 actualHq = Math.Min(actualHq, 100);
 
-                int results = LookingForHQ ? (actualResults * actualChance * actualHq) : (actualResults * actualChance * 100);
+                int results = globalState.lookingForHQ ? (actualResults * actualChance * actualHq) : (actualResults * actualChance * 100);
 
                 yield return new ActionResult()
                 {
