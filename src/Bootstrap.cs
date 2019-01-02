@@ -70,6 +70,11 @@ public class Bootstrap
             string recipeName = recipeData["Name"].Value<string>();
             int itemId = recipeData["ItemResultTargetID"].Value<int>();
 
+            if (itemId == 0)
+            {
+                continue;
+            }
+
             string className = recipeData["ClassJob"]["Name"].Value<string>();
             int classLevel = recipeData["RecipeLevelTable"]["ClassJobLevel"].Value<int>();
 
