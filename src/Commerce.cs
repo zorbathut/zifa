@@ -6,13 +6,13 @@ using System.Linq;
 
 public static class Commerce
 {
-    public static int ValueMarket(int id, bool hq)
+    public static float ValueMarket(int id, bool hq)
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
         if (itemdb.untradable)
         {
-            return 0;
+            return float.NaN;
         }
 
         var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
@@ -21,15 +21,15 @@ public static class Commerce
 
         Util.Element builder(JObject item) => new Util.Element { price = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
 
-        int lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
-        int hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
+        float lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
+        float hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
 
         // If we have no data for either set, give it the other's data
-        if (lqp == 0)
+        if (lqp == float.NaN)
         {
             lqp = hqp;
         }
-        if (hqp == 0)
+        if (hqp == float.NaN)
         {
             hqp = lqp;
         }
@@ -43,19 +43,20 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
-    public static int ValueSell(int id, bool hq, out string destination)
+    public static float ValueSell(int id, bool hq, out string destination)
     {
         var results = Api.Retrieve($"/item/{id}");
 
-        int bestprice = results["PriceLow"].Value<int>();
+        // This is always available (I think)
+        float bestprice = results["PriceLow"].Value<int>();
         if (hq)
         {
             // This seems to be the right equation
-            bestprice = (int)Math.Ceiling(bestprice * 1.1);
+            bestprice = (float)Math.Ceiling(bestprice * 1.1f);
         }
         destination = "vendor";
 
-        int market = (int)(ValueMarket(id, hq) * 0.95);
+        float market = ValueMarket(id, hq) * 0.95f;
         if (market > 0 && market > bestprice)
         {
             bestprice = market;
@@ -65,32 +66,32 @@ public static class Commerce
         return bestprice;
     }
 
-    public static int ValueSell(int id, bool hq)
+    public static float ValueSell(int id, bool hq)
     {
         string _;
         return ValueSell(id, hq, out _);
     }
 
-    public static int ValueBuy(int id, bool hq, out string source)
+    public static float ValueBuy(int id, bool hq, out string source)
     {
         // can't buy HQ stuff from vendors
         if (hq)
         {
             source = "market";
-            return (int)(ValueMarket(id, hq) * 1.05);
+            return ValueMarket(id, hq) * 1.05f;
         }
 
         var results = Api.Retrieve($"/item/{id}");
 
-        int bestprice = (int)(ValueMarket(id, hq) * 1.05);
+        float bestprice = ValueMarket(id, hq) * 1.05f;
         source = "market";
 
         if (results["GameContentLinks"]["GilShopItem"].Type != JTokenType.Null)
         {
             // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
             // Look for errors.
-            int vendorprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
-            if (vendorprice <= bestprice)
+            float vendorprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
+            if (float.IsNaN(bestprice) || vendorprice <= bestprice)
             {
                 bestprice = vendorprice;
                 source = "vendor";
@@ -100,7 +101,7 @@ public static class Commerce
         return bestprice;
     }
 
-    public static int ValueBuy(int id, bool hq)
+    public static float ValueBuy(int id, bool hq)
     {
         string _;
         return ValueBuy(id, hq, out _);

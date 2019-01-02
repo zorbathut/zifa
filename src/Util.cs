@@ -43,7 +43,7 @@ public static class Util
         public int price;
         public int count;
     }
-    public static int Median(this IEnumerable<Element> elements_enum)
+    public static float Median(this IEnumerable<Element> elements_enum)
     {
         var elements = elements_enum.ToList();
         elements.Sort((lhs, rhs) => lhs.price < rhs.price);
@@ -51,7 +51,7 @@ public static class Util
         if (elements.Count == 0)
         {
             // okay then
-            return 0;
+            return float.NaN;
         }
 
         while (elements.Count > 1)

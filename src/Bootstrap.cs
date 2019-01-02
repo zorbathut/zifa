@@ -79,9 +79,9 @@ public class Bootstrap
                 continue;
             }
 
-            int expectedRevenue = Commerce.ValueSell(itemId, false);
-            Dbg.Inf($"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false)}/{Commerce.ValueSell(itemId, true)}");
-            int tcost = 0;
+            float expectedRevenue = Commerce.ValueSell(itemId, false);
+            Dbg.Inf($"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false):F0}/{Commerce.ValueSell(itemId, true):F0}");
+            float tcost = 0;
             for (int i = 0; i < 9; ++i)
             {
                 int itemamount = recipeData[$"AmountIngredient{i}"].Value<int>();
@@ -90,13 +90,13 @@ public class Bootstrap
                 if (itemamount > 0)
                 {
                     string source;
-                    int cost = Commerce.ValueBuy(itemid, false, out source);
-                    Dbg.Inf($"  {Db.Item(itemid).name}: buy from {source} for {cost}x{itemamount}");
+                    float cost = Commerce.ValueBuy(itemid, false, out source);
+                    Dbg.Inf($"  {Db.Item(itemid).name}: buy from {source} for {cost:F0}x{itemamount}");
 
                     tcost += itemamount * cost;
                 }
             }
-            Dbg.Inf($"  Total cost: {tcost}, total profit {expectedRevenue - tcost}");
+            Dbg.Inf($"  Total cost: {tcost:F0}, total profit {expectedRevenue - tcost:F0}");
         }
     }
 }
