@@ -108,14 +108,14 @@ public static class GatheringCalculator
     {
         public Action nextAction;
         public GatheringState nextState;
-        public float fullOutput;
+        public int fullOutput;
     }
 
     private struct ActionResult
     {
         public Action nextAction;
         public GatheringState nextState;
-        public float actionOutput;
+        public int actionOutput;
     }
 
     public static void Process()
@@ -123,7 +123,7 @@ public static class GatheringCalculator
         var startState = new GatheringState() { remainingGp = StartingGP, remainingAttempts = StartingAttempts };
         var summary = GetBestStep(startState);
 
-        Dbg.Inf($"Expected result: {summary.fullOutput:F2}");
+        Dbg.Inf($"Expected result: {summary.fullOutput/10000f:F2}");
 
         var currentState = startState;
         while (true)
@@ -155,7 +155,7 @@ public static class GatheringCalculator
             {
                 var chainedResult = GetBestStep(actionResult.nextState);
 
-                float fullOutput = chainedResult.fullOutput + actionResult.actionOutput;
+                int fullOutput = chainedResult.fullOutput + actionResult.actionOutput;
                 if (best.fullOutput < fullOutput)
                 {
                     best.fullOutput = fullOutput;
@@ -205,7 +205,7 @@ public static class GatheringCalculator
                 actualChance = Math.Min(actualChance, 100);
                 actualHq = Math.Min(actualHq, 100);
 
-                float results = LookingForHQ ? (actualResults * actualChance * actualHq / 10000f) : (actualResults * actualChance / 100f);
+                int results = LookingForHQ ? (actualResults * actualChance * actualHq) : (actualResults * actualChance * 100);
 
                 yield return new ActionResult()
                 {
