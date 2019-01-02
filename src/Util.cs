@@ -91,3 +91,11 @@ public static class Util
         yield return added;
     }
 }
+
+public static class EnumUtil
+{
+    public static IEnumerable<T> Values<T>()
+    {
+        return Enum.GetValues(typeof(T)).Cast<T>();
+    }
+}
