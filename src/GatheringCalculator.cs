@@ -109,6 +109,7 @@ public static class GatheringCalculator
         public Action nextAction;
         public GatheringState nextState;
         public int fullOutput;
+        public int moves;
     }
 
     private struct ActionResult
@@ -156,11 +157,13 @@ public static class GatheringCalculator
                 var chainedResult = GetBestStep(actionResult.nextState);
 
                 int fullOutput = chainedResult.fullOutput + actionResult.actionOutput;
-                if (best.fullOutput < fullOutput)
+                int fullMoves = chainedResult.moves + 1;
+                if (best.fullOutput < fullOutput || (best.fullOutput == fullOutput && best.moves > fullMoves))
                 {
                     best.fullOutput = fullOutput;
                     best.nextState = actionResult.nextState;
                     best.nextAction = actionResult.nextAction;
+                    best.moves = fullMoves;
                 }
             }
 
