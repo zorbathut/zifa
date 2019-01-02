@@ -138,6 +138,51 @@ public static class GatheringCalculator
         Dbg.Inf($"Expected result: {bakedResult.output/10000f:F2}{bakedResult.description}");
     }
 
+    private enum NodeVariants
+    {
+        Loot,
+        Hq,
+        Attempts,
+    }
+
+    public static void ProcessLongterm(int lootChance, int hqChance, int startingGp, int startingAttempts, bool focusOnHq)
+    {
+        var results = new List<BakedResult>();
+
+        foreach (var variant in EnumUtil.Values<NodeVariants>())
+        {
+            var startState = new GatheringState() { remainingGp = startingGp, remainingAttempts = startingAttempts };
+            var globalState = new GlobalState() { baseChance = lootChance, baseHQ = hqChance, lookingForHQ = focusOnHq, cache = new Dictionary<GatheringState, GatheringResult>() };
+
+            if (variant == NodeVariants.Loot) globalState.baseChance += 10;
+            if (variant == NodeVariants.Hq) globalState.baseHQ += 5;
+            if (variant == NodeVariants.Attempts) startState.remainingAttempts += 1;
+
+            startState.remainingGp = 0;
+
+            var baseResult = GetBakedResult(startState, globalState);
+
+            for (int gp = 50; gp <= startingGp; gp += 50)
+            {
+                startState.remainingGp = gp;
+
+                var result = GetBakedResult(startState, globalState);
+                result.output -= baseResult.output;
+                result.output *= 1000;
+                result.output /= gp;
+
+                result.description = $"{result.output/10000f:F2} output/kGP - {variant}:{gp}:" + result.description;
+
+                results.Add(result);
+            }
+        }
+
+        foreach (var result in results.OrderByDescending(r => r.output))
+        {
+            Dbg.Inf(result.description);
+        }
+    }
+
     private static BakedResult GetBakedResult(GatheringState startState, GlobalState globalState)
     {
         var summary = GetBestStep(startState, globalState);
