@@ -1,6 +1,8 @@
 
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Bootstrap
 {
@@ -63,6 +65,8 @@ public class Bootstrap
 
     public static void DoRecipeAnalysis(string classid, int levelmin)
     {
+        var results = new List<Tuple<float, string>>();
+
         foreach (var item in Api.List("/Recipe"))
         {
             var recipeData = Api.Retrieve(item["Url"].ToString());
@@ -85,7 +89,7 @@ public class Bootstrap
             }
 
             float expectedRevenue = Commerce.ValueSell(itemId, false);
-            Dbg.Inf($"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false):F0}/{Commerce.ValueSell(itemId, true):F0}");
+            string readable = $"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false):F0}/{Commerce.ValueSell(itemId, true):F0}";
             float tcost = 0;
             for (int i = 0; i < 9; ++i)
             {
@@ -96,12 +100,21 @@ public class Bootstrap
                 {
                     string source;
                     float cost = Commerce.ValueBuy(itemid, false, out source);
-                    Dbg.Inf($"  {Db.Item(itemid).name}: buy from {source} for {cost:F0}x{itemamount}");
+                    readable += "\n" + $"  {Db.Item(itemid).name}: buy from {source} for {cost:F0}x{itemamount}";
 
                     tcost += itemamount * cost;
                 }
             }
-            Dbg.Inf($"  Total cost: {tcost:F0}, total profit {expectedRevenue - tcost:F0}");
+
+            float profit = expectedRevenue - tcost;
+            readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}";
+
+            results.Add(new Tuple<float, string>(profit, readable));
+        }
+
+        foreach (var result in results.OrderByDescending(result => result.Item1))
+        {
+            Dbg.Inf(result.Item2);
         }
     }
 }
