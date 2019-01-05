@@ -45,7 +45,7 @@ public static class GatheringCalculator
         new ActionInfo() { action = Action.AgelessWords, cost = 300, attempts = 1, ephemeral = true },
         //new ActionInfo() { action = Action.BruntForce, dropChance = 100 },    // TODO
         new ActionInfo() { action = Action.BlessedHarvest, cost = 400, results = 1 },
-        //new ActionInfo() { action = Action.LeafTurn2, cost = 300, hqChance = 30 },
+        new ActionInfo() { action = Action.LeafTurn2, cost = 300, hqChance = 30 },
         //new ActionInfo() { action = Action.Prune, cost = 100, hqChance = 10, ephemeral = true },
         //new ActionInfo() { action = Action.Prune2, cost = 200, hqChance = 20, ephemeral = true },
     };
