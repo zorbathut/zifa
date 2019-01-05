@@ -73,7 +73,7 @@ public static class Api
             {
                 Thread.Sleep(0);
             }
-            NextQuery += 110;
+            NextQuery += 120;
 
             string url = Prefix + urlbody;
             Dbg.Inf($"Querying {url}");
