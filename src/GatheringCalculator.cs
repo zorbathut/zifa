@@ -140,6 +140,7 @@ public static class GatheringCalculator
 
     private enum NodeVariants
     {
+        None,
         Loot,
         Hq,
         Attempts,
