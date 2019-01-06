@@ -69,7 +69,8 @@ public class Bootstrap
 
         foreach (var item in Api.List("/Recipe"))
         {
-            var recipeData = Api.Retrieve(item["Url"].ToString());
+            var recipeUrl = item["Url"].ToString();
+            var recipeData = Api.Retrieve(recipeUrl);
 
             string recipeName = recipeData["Name"].Value<string>();
             int itemId = recipeData["ItemResultTargetID"].Value<int>();
@@ -84,6 +85,12 @@ public class Bootstrap
 
             // we gotta do more, man
             if (className != classid || classLevel < levelmin || classLevel >= levelmin + 5)
+            {
+                continue;
+            }
+
+            // filter out ixal
+            if (recipeData["ItemRequired"]["ID"].Type != JTokenType.Null)
             {
                 continue;
             }
