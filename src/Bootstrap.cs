@@ -107,9 +107,10 @@ public class Bootstrap
             }
 
             float profit = expectedRevenue - tcost;
-            readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}";
+            float profitPerTime = profit > 0 ? profit / Commerce.MarketProfitDelayQuotient(itemId) : profit;
+            readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitPerTime:F0}";
 
-            results.Add(new Tuple<float, string>(profit, readable));
+            results.Add(new Tuple<float, string>(profitPerTime, readable));
         }
 
         foreach (var result in results.OrderByDescending(result => result.Item1))

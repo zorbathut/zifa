@@ -43,6 +43,27 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
+    public static float MarketProfitDelayQuotient(int id)
+    {
+        // just get this out of the way first; it's a much much cheaper query
+        var itemdb = Db.Item(id);
+        if (itemdb.untradable)
+        {
+            return float.NaN;
+        }
+
+        var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
+
+        var history = results["History"].OfType<JObject>();
+
+        long lastDate = history.Last()["PurchaseDate"].Value<long>();
+        long span = DateTimeOffset.Now.ToUnixTimeSeconds() - lastDate;
+
+        int totalQuantity = history.Sum(item => item["Quantity"].Value<int>());
+
+        return Math.Max(1, (float)span / totalQuantity / 86400);
+    }
+
     public static float ValueSell(int id, bool hq, out string destination)
     {
         var results = Api.Retrieve($"/item/{id}");

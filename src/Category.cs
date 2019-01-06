@@ -37,7 +37,7 @@ public static class Category
         {
             regex = new Regex("^/market/.*/history$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             cacheExpiry = new TimeSpan(0, 60, 0),
-            columns = "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ",
+            columns = "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ,History.*.PurchaseDate",
         },
         new CategoryInfo
         {
