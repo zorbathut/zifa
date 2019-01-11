@@ -9,9 +9,11 @@ public static class GatheringCalculator
     {
         Done,
         Gather,
+        FieldMasteryAggregatorSlot,
         FieldMastery1,
         FieldMastery2,
         FieldMastery3,
+        LeafTurnAggregatorSlot,
         LeafTurn,
         FloraMaster,
         BountifulHarvest,
@@ -19,6 +21,7 @@ public static class GatheringCalculator
         BruntForce,
         BlessedHarvest,
         LeafTurn2,
+        BlessedHarvest2,
         Prune,
         Prune2,
     }
@@ -32,20 +35,22 @@ public static class GatheringCalculator
         public int hqChance;
         public int attempts;
         public int results;
+        public Action aggregator;
     }
     private static readonly List<ActionInfo> ActionInfos = new List<ActionInfo>()
     {
         new ActionInfo() { action = Action.Gather },
-        new ActionInfo() { action = Action.FieldMastery1, cost = 50, dropChance = 5 },
-        new ActionInfo() { action = Action.FieldMastery2, cost = 100, dropChance = 15 },
-        new ActionInfo() { action = Action.FieldMastery3, cost = 250, dropChance = 50 },
-        new ActionInfo() { action = Action.LeafTurn, cost = 100, hqChance = 10 },
+        new ActionInfo() { action = Action.FieldMastery1, cost = 50, dropChance = 5, aggregator = Action.FieldMasteryAggregatorSlot },
+        new ActionInfo() { action = Action.FieldMastery2, cost = 100, dropChance = 15, aggregator = Action.FieldMasteryAggregatorSlot },
+        new ActionInfo() { action = Action.FieldMastery3, cost = 250, dropChance = 50, aggregator = Action.FieldMasteryAggregatorSlot },
+        new ActionInfo() { action = Action.LeafTurn, cost = 100, hqChance = 10, aggregator = Action.LeafTurnAggregatorSlot },
         new ActionInfo() { action = Action.FloraMaster, cost = 50, dropChance = 15, ephemeral = true },
         new ActionInfo() { action = Action.BountifulHarvest, cost = 100, results = 1, ephemeral = true },
         new ActionInfo() { action = Action.AgelessWords, cost = 300, attempts = 1, ephemeral = true },
         //new ActionInfo() { action = Action.BruntForce, dropChance = 100 },    // TODO
         new ActionInfo() { action = Action.BlessedHarvest, cost = 400, results = 1 },
-        new ActionInfo() { action = Action.LeafTurn2, cost = 300, hqChance = 30 },
+        new ActionInfo() { action = Action.LeafTurn2, cost = 300, hqChance = 30, aggregator = Action.LeafTurnAggregatorSlot },
+        new ActionInfo() { action = Action.BlessedHarvest2, cost = 500, results = 2 },
         //new ActionInfo() { action = Action.Prune, cost = 100, hqChance = 10, ephemeral = true },
         //new ActionInfo() { action = Action.Prune2, cost = 200, hqChance = 20, ephemeral = true },
     };
@@ -248,7 +253,7 @@ public static class GatheringCalculator
                 continue;
             }
 
-            if (state.HasBuff(actionInfo.action))
+            if (state.HasBuff(actionInfo.action) || state.HasBuff(actionInfo.aggregator))
             {
                 // nope
                 continue;
@@ -284,10 +289,16 @@ public static class GatheringCalculator
             }
             else
             {
+                var nextState = state.ApplyBuff(actionInfo.action, actionInfo.cost);
+                if (actionInfo.aggregator != Action.Done)
+                {
+                    nextState = nextState.ApplyBuff(actionInfo.aggregator, 0);
+                }
+
                 yield return new ActionResult()
                 {
                     nextAction = actionInfo.action,
-                    nextState = state.ApplyBuff(actionInfo.action, actionInfo.cost),
+                    nextState = nextState,
                 };
             }
         }
