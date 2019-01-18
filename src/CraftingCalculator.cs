@@ -23,6 +23,9 @@ public static class CraftingCalculator
         StandardSynthesis,
     }
 
+    const int BasicTouchCost = 18;
+    const int MastersMendCost = 92;
+
     public struct GlobalState
     {
         public int totalProgress;
@@ -148,19 +151,12 @@ public static class CraftingCalculator
             int chance = Math.Min(90 + craftingState.SuccessBonus(), 100);
 
             {
-                var success = craftingState;
-                success.progress += (int)CraftingUtil.BaseProgressIncrease(globalState);
-                success.Tick();
-
-                var result = OptimizeResult(success, globalState);
+                var result = OptimizeResult(DoCommand(craftingState, globalState, Action.BasicSynthesis, true), globalState);
                 accumulator.expectedScore += result.expectedScore * chance / 100;
             }
 
             {
-                var failure = craftingState;
-                failure.Tick();
-
-                var result = OptimizeResult(failure, globalState);
+                var result = OptimizeResult(DoCommand(craftingState, globalState, Action.BasicSynthesis, false), globalState);
                 accumulator.expectedScore += result.expectedScore * (100 - chance) / 100;
             }
 
@@ -183,19 +179,12 @@ public static class CraftingCalculator
             nextState.cp -= BasicTouchCost;
 
             {
-                var success = nextState;
-                success.quality += (int)CraftingUtil.BaseQualityIncrease(globalState);
-                success.Tick();
-
-                var result = OptimizeResult(success, globalState);
+                var result = OptimizeResult(DoCommand(craftingState, globalState, Action.BasicTouch, true), globalState);
                 accumulator.expectedScore += result.expectedScore * chance / 100;
             }
 
             {
-                var failure = nextState;
-                failure.Tick();
-
-                var result = OptimizeResult(failure, globalState);
+                var result = OptimizeResult(DoCommand(craftingState, globalState, Action.BasicTouch, false), globalState);
                 accumulator.expectedScore += result.expectedScore * (100 - chance) / 100;
             }
 
@@ -212,12 +201,7 @@ public static class CraftingCalculator
             var accumulator = new CraftingResult();
             accumulator.nextAction = Action.MastersMend;
 
-            var success = craftingState;
-            success.cp -= MastersMendCost;
-            success.durability = Math.Min(success.durability + 30, globalState.maxDurability);
-            success.Tick();
-
-            var result = OptimizeResult(success, globalState);
+            var result = OptimizeResult(DoCommand(craftingState, globalState, Action.MastersMend, true), globalState);
             accumulator.expectedScore = result.expectedScore;
 
             if (best.expectedScore < accumulator.expectedScore)
@@ -227,5 +211,57 @@ public static class CraftingCalculator
         }
 
         return best;
+    }
+
+    private static CraftingState DoCommand(CraftingState craftingState, GlobalState globalState, Action action, bool outcome)
+    {
+        if (action == Action.BasicSynthesis)
+        {
+            if (outcome)
+            {
+                var success = craftingState;
+                success.progress += (int)CraftingUtil.BaseProgressIncrease(globalState);
+                success.Tick();
+                return success;
+            }
+            else
+            {
+                var failure = craftingState;
+                failure.Tick();
+                return failure;
+            }
+        }
+        else if (action == Action.BasicTouch)
+        {
+            var nextState = craftingState;
+            nextState.cp -= BasicTouchCost;
+
+            if (outcome)
+            {
+                var success = nextState;
+                success.quality += (int)CraftingUtil.BaseQualityIncrease(globalState);
+                success.Tick();
+
+                return success;
+            }
+            else
+            {
+                var failure = nextState;
+                failure.Tick();
+
+                return failure;
+            }
+        }
+        else if (action == Action.MastersMend)
+        {
+            var success = craftingState;
+            success.cp -= MastersMendCost;
+            success.durability = Math.Min(success.durability + 30, globalState.maxDurability);
+            success.Tick();
+            return success;
+        }
+
+        Dbg.Err("I don't know what's going on");
+        return craftingState;
     }
 }
