@@ -111,6 +111,39 @@ public static class CraftingCalculator
         var result = OptimizeResult(startState, globalState);
 
         Dbg.Inf($"Expected score: {result.expectedScore}");
+
+        Dbg.Inf("");
+
+        var currentState = startState;
+        while (true)
+        {
+            var currentResult = OptimizeResult(currentState, globalState);
+            if (currentResult.nextAction == Action.Done)
+            {
+                break;
+            }
+
+            Dbg.Inf("");
+            Dbg.Inf("=============");
+            Dbg.Inf($"Progress {currentState.progress} - Quality {currentState.quality} - Durability {currentState.durability} - Condition {currentState.condition} - CP {currentState.cp}");
+            Dbg.Inf($"Next action: {currentResult.nextAction}");
+
+            string input = Console.ReadLine();
+            if (input == "y" || input == "Y")
+            {
+                currentState = DoCommand(currentState, globalState, currentResult.nextAction, true);
+            }
+            else if (input == "n" || input == "N")
+            {
+                currentState = DoCommand(currentState, globalState, currentResult.nextAction, false);
+            }
+            else
+            {
+                Dbg.Inf("Invalid input, please enter y or n for success or failure");
+            }
+        }
+
+        Dbg.Inf("Done!");
     }
 
     private static CraftingResult OptimizeResult(CraftingState craftingState, GlobalState globalState)
