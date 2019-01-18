@@ -19,6 +19,8 @@ public class Bootstrap
 
         //DoGCScripAnalysis();
         DoRecipeAnalysis("blacksmith", 1);
+        //GatheringCalculator.ProcessLongterm(69, 0, 500, 6, false);
+        //CraftingCalculator.Process();
     }
 
     public static void DoGCScripAnalysis()
