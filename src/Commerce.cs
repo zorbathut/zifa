@@ -10,7 +10,7 @@ public static class Commerce
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
-        if (itemdb.untradable)
+        if (itemdb.IsUntradable)
         {
             return float.NaN;
         }
@@ -47,7 +47,7 @@ public static class Commerce
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
-        if (itemdb.untradable)
+        if (itemdb.IsUntradable)
         {
             return float.NaN;
         }
@@ -66,10 +66,10 @@ public static class Commerce
 
     public static float ValueSell(int id, bool hq, out string destination)
     {
-        var results = Api.Retrieve($"/item/{id}");
+        var item = Db.Item(id);
 
         // This is always available (I think)
-        float bestprice = results["PriceLow"].Value<int>();
+        float bestprice = item.Bid;
         if (hq)
         {
             // This seems to be the right equation

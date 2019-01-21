@@ -16,9 +16,10 @@ public class Bootstrap
     {
         Cache.Init();
         Api.Init();
+        Db.Init();
 
-        //DoGCScripAnalysis();
-        DoRecipeAnalysis("blacksmith", 1);
+        DoGCScripAnalysis();
+        //DoRecipeAnalysis("weaver", 16);
         //GatheringCalculator.ProcessLongterm(69, 0, 500, 6, false);
         //CraftingCalculator.Process();
     }
@@ -27,33 +28,29 @@ public class Bootstrap
     {
         var results = new List<Result>();
         var inspected = new HashSet<int>();
-        foreach (var item in Api.List("/GCScripShopItem"))
+        foreach (var scripEntry in Db.GetSheet2<SaintCoinach.Xiv.GCScripShopItem>())
         {
-            var itemData = Api.Retrieve(item["Url"].ToString());
+            var item = scripEntry.Item;
 
-            if (!itemData.ContainsKey("Item") || itemData["Item"]["ID"].Type == JTokenType.Null)
+            if (item == null || item.Key == 0)
             {
                 continue;
             }
 
-            if (itemData["Item"]["IsUntradable"].Value<string>() == "1")
+            if (item.IsUntradable)
             {
                 continue;
             }
             
-            int id = itemData["Item"]["ID"].Value<int>();
+            int id = item.Key;
 
             if (!inspected.Contains(id))
             {
                 inspected.Add(id);
 
-                var val = Commerce.ValueSell(id, false);
-                var seals = itemData["CostGCSeals"].Value<int>();
+                float gps = (float)Commerce.ValueSell(id, false) / scripEntry.GCSealsCost;
 
-                string name = itemData["Item"]["Name"].Value<string>();
-                float gps = (float)val / seals;
-
-                results.Add(new Result() { gps = gps, name = name });
+                results.Add(new Result() { gps = gps, name = item.Name });
             }
         }
 
@@ -109,7 +106,7 @@ public class Bootstrap
                 {
                     string source;
                     float cost = Commerce.ValueBuy(itemid, false, out source);
-                    readable += "\n" + $"  {Db.Item(itemid).name}: buy from {source} for {cost:F0}x{itemamount}";
+                    readable += "\n" + $"  {Db.Item(itemid).Name}: buy from {source} for {cost:F0}x{itemamount}";
 
                     tcost += itemamount * cost;
                 }
@@ -119,7 +116,7 @@ public class Bootstrap
             float profitPerTime = profit > 0 ? profit / Commerce.MarketProfitDelayQuotient(itemId) : profit;
             readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitPerTime:F0}";
 
-            results.Add(new Tuple<float, string>(profitPerTime, readable));
+            results.Add(new Tuple<float, string>(classLevel, readable));
         }
 
         foreach (var result in results.OrderByDescending(result => result.Item1))
