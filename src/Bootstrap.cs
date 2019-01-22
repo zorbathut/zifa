@@ -113,6 +113,44 @@ public class Bootstrap
         }
     }
 
+    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, SaintCoinach.Xiv.Item result, bool hq)
+    {
+        float expectedRevenue = Commerce.ValueSell(result.Key, hq);
+        string readable = $"{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq):F0}";
+        float tcost = 0;
+        foreach (var ingredient in recipe.Ingredients)
+        {
+            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
+            readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
+
+            tcost += ingredient.Count * cost;
+        }
+
+        float profit = expectedRevenue - tcost;
+        float profitTimeAdjusted;
+
+        if (profit > 0)
+        {
+            // Modify weighting for profitable things that sell slowly
+            float delay = Commerce.MarketProfitDelayQuotient(result.Key);
+            if (hq)
+            {
+                // HQing things is hard; ramp the delay way up
+                delay = Math.Max(delay, 0.2f);
+            }
+
+            profitTimeAdjusted = profit / delay;
+        }
+        else
+        {
+            profitTimeAdjusted = profit;
+        }
+        
+        readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
+        readable += "\n";
+
+        return new Tuple<float, string>(profitTimeAdjusted, readable);
+    }
     public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax)
     {
         var results = new List<Tuple<float, string>>();
@@ -133,7 +171,7 @@ public class Bootstrap
             int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
 
             // we gotta do more, man
-            if (className != classid || classLevel < levelmin || classLevel >= levelmax)
+            if (recipe.ClassJob.Name != classid || classLevel < levelmin || classLevel >= levelmax)
             {
                 continue;
             }
@@ -144,25 +182,12 @@ public class Bootstrap
                 continue;
             }
 
-            evaluator.Add(() =>
+            if (classLevel <= hqcutoff && result.CanBeHq)
             {
-                float expectedRevenue = Commerce.ValueSell(result.Key, classLevel <= hqcutoff);
-                string readable = $"{recipe.ResultItem.Name} ({recipe.ResultItem.Key}): {className} {classLevel}, expected revenue {Commerce.ValueSell(resultId, false):F0}/{Commerce.ValueSell(resultId, true):F0}";
-                float tcost = 0;
-                foreach (var ingredient in recipe.Ingredients)
-                {
-                    float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
-                    readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
+                evaluator.Add(() => results.Add(EvaluateItem(recipe, result, true)));
+            }
 
-                    tcost += ingredient.Count * cost;
-                }
-
-                float profit = expectedRevenue - tcost;
-                float profitPerTime = profit > 0 ? profit / Commerce.MarketProfitDelayQuotient(resultId) : profit;
-                readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitPerTime:F0}";
-
-                results.Add(new Tuple<float, string>(profitPerTime, readable));
-            });
+            evaluator.Add(() => results.Add(EvaluateItem(recipe, result, false)));
         }
 
         for (int i = 0; i < evaluator.Count; ++i)
@@ -171,7 +196,7 @@ public class Bootstrap
             evaluator[i]();
         }
 
-        foreach (var result in results.OrderByDescending(result => result.Item1))
+        foreach (var result in results.OrderBy(result => result.Item1))
         {
             Dbg.Inf(result.Item2);
         }
