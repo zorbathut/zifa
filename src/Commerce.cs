@@ -25,11 +25,11 @@ public static class Commerce
         float hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
 
         // If we have no data for either set, give it the other's data
-        if (lqp == float.NaN)
+        if (float.IsNaN(lqp))
         {
             lqp = hqp;
         }
-        if (hqp == float.NaN)
+        if (float.IsNaN(hqp))
         {
             hqp = lqp;
         }
