@@ -27,7 +27,7 @@ public static class Api
         int page = 1;
         while (true)
         {
-            var pageData = Retrieve(path, new Dictionary<string, string>() { { "page", page.ToString() } });
+            var pageData = Retrieve(path, TimeSpan.FromDays(30), new Dictionary<string, string>() { { "page", page.ToString() } });
             foreach (var item in pageData["Results"].OfType<JObject>())
             {
                 yield return item;
@@ -45,7 +45,7 @@ public static class Api
     }
 
     private static long NextQuery = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-    public static JObject Retrieve(string path, Dictionary<string, string> parameters = null)
+    public static JObject Retrieve(string path, TimeSpan invalidation, Dictionary<string, string> parameters = null)
     {
         if (parameters == null)
         {
@@ -65,7 +65,7 @@ public static class Api
         string paramstr = paramlist.Select(kvp => $"{kvp.Key}={kvp.Value}").Aggregate((lhs, rhs) => $"{lhs}&{rhs}");
         string urlbody = $"{path}?{paramstr}";
 
-        string result = Cache.GetCacheEntry(urlbody);
+        string result = Cache.GetCacheEntry(urlbody, invalidation: invalidation);
         if (result == null)
         {
             // Avoid the ten-query-per-second limit

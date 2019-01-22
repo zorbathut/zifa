@@ -14,8 +14,14 @@ public static class Cache
         DbConnection.ExecuteNonQuery("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, time INTEGER NOT NULL, value TEXT NOT NULL)");
     }
 
-    public static string GetCacheEntry(string key)
+    public static string GetCacheEntry(string key, TimeSpan invalidation)
     {
+        if (invalidation.TotalSeconds <= 0)
+        {
+            // no cache allowed
+            return null;
+        }
+
         // We technically don't need this until later, but we keep it up here so we get appropriate angry messages if it fails
         var categoryInfo = Category.GetKeyCategoryInfo(key);
 
@@ -31,7 +37,7 @@ public static class Cache
         // Check cache age
         var cachetimestamp = DateTimeOffset.FromUnixTimeSeconds(reader.GetField<long>("time"));
         var cacheage = DateTimeOffset.Now - cachetimestamp;
-        if (cacheage > categoryInfo.cacheExpiry)
+        if (cacheage > invalidation)
         {
             return null;
         }

@@ -99,3 +99,21 @@ public static class EnumUtil
         return Enum.GetValues(typeof(T)).Cast<T>();
     }
 }
+
+public static class MathUtil
+{
+    public static int Clamp(int val, int low, int high)
+    {
+        return Math.Min(Math.Max(val, low), high);
+    }
+
+    public static float Clamp(float val, float low, float high)
+    {
+        return Math.Min(Math.Max(val, low), high);
+    }
+
+    public static double Clamp(double val, double low, double high)
+    {
+        return Math.Min(Math.Max(val, low), high);
+    }
+}

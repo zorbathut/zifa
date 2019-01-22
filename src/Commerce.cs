@@ -15,7 +15,7 @@ public static class Commerce
             return float.NaN;
         }
 
-        var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
+        var results = Market.History(id);
 
         var history = results["History"].OfType<JObject>();
 
@@ -52,7 +52,7 @@ public static class Commerce
             return float.NaN;
         }
 
-        var results = Api.Retrieve($"/market/midgardsormr/items/{id}/history");
+        var results = Market.History(id);
 
         var history = results["History"].OfType<JObject>();
 
