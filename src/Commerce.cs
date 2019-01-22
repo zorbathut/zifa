@@ -61,7 +61,7 @@ public static class Commerce
 
         int totalQuantity = history.Sum(item => item["Quantity"].Value<int>());
 
-        return Math.Max(1 / itemdb.StackSize, (float)span / totalQuantity / 86400);
+        return Math.Max(1f / Math.Min(99, itemdb.StackSize), (float)span / totalQuantity / 86400);
     }
 
     public static float ValueSell(int id, bool hq, out string destination)
