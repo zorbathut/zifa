@@ -102,17 +102,17 @@ public static class Commerce
             return ValueMarket(id, hq) * 1.05f;
         }
 
-        var results = Api.Retrieve($"/item/{id}");
-
         float bestprice = ValueMarket(id, hq) * 1.05f;
         source = "market";
 
-        if (results["GameContentLinks"]["GilShopItem"].Type != JTokenType.Null)
+        var item = Db.Item(id);
+
+        if (CanBuyFromMarket(id))
         {
             // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
             // Look for errors.
-            float vendorprice = Math.Min(bestprice, results["PriceMid"].Value<int>());
-            if (float.IsNaN(bestprice) || vendorprice <= bestprice)
+            float vendorprice = Math.Min(bestprice, Db.Item(id).Ask);
+            if (vendorprice > 0 && vendorprice <= bestprice)
             {
                 bestprice = vendorprice;
                 source = "vendor";
@@ -128,4 +128,21 @@ public static class Commerce
         return ValueBuy(id, hq, out _);
     }
 
+    private static HashSet<int> marketablesCache;
+    public static bool CanBuyFromMarket(int id)
+    {
+        if (marketablesCache == null)
+        {
+            marketablesCache = new HashSet<int>();
+
+            foreach (var shopItem in Db.GetSheet2<SaintCoinach.Xiv.GilShopItem>())
+            {
+                marketablesCache.Add(shopItem.Item.Key);
+            }
+
+            Dbg.Inf("Generated marketables cache");
+        }
+
+        return marketablesCache.Contains(id);
+    }
 }
