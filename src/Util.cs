@@ -40,13 +40,13 @@ public static class Util
 
     public class Element
     {
-        public int price;
+        public long value;
         public int count;
     }
     public static float Median(this IEnumerable<Element> elements_enum)
     {
         var elements = elements_enum.ToList();
-        elements.Sort((lhs, rhs) => lhs.price < rhs.price);
+        elements.Sort((lhs, rhs) => lhs.value < rhs.value);
 
         if (elements.Count == 0)
         {
@@ -56,7 +56,7 @@ public static class Util
 
         while (elements.Count > 1)
         {
-            int mid = (elements[0].price + elements[elements.Count - 1].price) / 2;
+            long mid = (elements[0].value + elements[elements.Count - 1].value) / 2;
             int removal = Math.Min(elements[0].count, elements[elements.Count - 1].count);
 
             elements[0].count -= removal;
@@ -78,7 +78,7 @@ public static class Util
             }
         }
 
-        return elements[0].price;
+        return elements[0].value;
     }
 
     public static IEnumerable<T> Concat<T>(this IEnumerable<T> first, T added)

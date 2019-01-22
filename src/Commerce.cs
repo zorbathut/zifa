@@ -19,7 +19,7 @@ public static class Commerce
 
         var history = results["History"].OfType<JObject>();
 
-        Util.Element builder(JObject item) => new Util.Element { price = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
+        Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
 
         float lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
         float hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
