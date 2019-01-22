@@ -113,61 +113,62 @@ public class Bootstrap
         }
     }
 
-    public static void DoRecipeAnalysis(string classid, int levelmin)
+    public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax)
     {
         var results = new List<Tuple<float, string>>();
 
-        foreach (var item in Api.List("/Recipe"))
+        var evaluator = new List<Action>();
+
+        foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
         {
-            var recipeUrl = item["Url"].ToString();
-            var recipeData = Api.Retrieve(recipeUrl);
-
-            string recipeName = recipeData["Name"].Value<string>();
-            int itemId = recipeData["ItemResultTargetID"].Value<int>();
-
-            if (itemId == 0)
+            var result = recipe.ResultItem;
+            int resultId = result.Key;
+            
+            if (resultId == 0)
             {
                 continue;
             }
 
-            string className = recipeData["ClassJob"]["Name"].Value<string>();
-            int classLevel = recipeData["RecipeLevelTable"]["ClassJobLevel"].Value<int>();
+            string className = recipe.ClassJob.Name;
+            int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
 
             // we gotta do more, man
-            if (className != classid || classLevel < levelmin || classLevel >= levelmin + 5)
+            if (className != classid || classLevel < levelmin || classLevel >= levelmax)
             {
                 continue;
             }
 
             // filter out ixal
-            if (recipeData["ItemRequired"]["ID"].Type != JTokenType.Null)
+            if (recipe.RequiredItem.Key != 0)
             {
                 continue;
             }
 
-            float expectedRevenue = Commerce.ValueSell(itemId, false);
-            string readable = $"{recipeName} ({itemId}): {className} {classLevel}, expected revenue {Commerce.ValueSell(itemId, false):F0}/{Commerce.ValueSell(itemId, true):F0}";
-            float tcost = 0;
-            for (int i = 0; i < 9; ++i)
+            evaluator.Add(() =>
             {
-                int itemamount = recipeData[$"AmountIngredient{i}"].Value<int>();
-                int itemid = recipeData[$"ItemIngredient{i}TargetID"].Value<int>();
-
-                if (itemamount > 0)
+                float expectedRevenue = Commerce.ValueSell(result.Key, classLevel <= hqcutoff);
+                string readable = $"{recipe.ResultItem.Name} ({recipe.ResultItem.Key}): {className} {classLevel}, expected revenue {Commerce.ValueSell(resultId, false):F0}/{Commerce.ValueSell(resultId, true):F0}";
+                float tcost = 0;
+                foreach (var ingredient in recipe.Ingredients)
                 {
-                    string source;
-                    float cost = Commerce.ValueBuy(itemid, false, out source);
-                    readable += "\n" + $"  {Db.Item(itemid).Name}: buy from {source} for {cost:F0}x{itemamount}";
+                    float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
+                    readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
-                    tcost += itemamount * cost;
+                    tcost += ingredient.Count * cost;
                 }
-            }
 
-            float profit = expectedRevenue - tcost;
-            float profitPerTime = profit > 0 ? profit / Commerce.MarketProfitDelayQuotient(itemId) : profit;
-            readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitPerTime:F0}";
+                float profit = expectedRevenue - tcost;
+                float profitPerTime = profit > 0 ? profit / Commerce.MarketProfitDelayQuotient(resultId) : profit;
+                readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitPerTime:F0}";
 
-            results.Add(new Tuple<float, string>(classLevel, readable));
+                results.Add(new Tuple<float, string>(profitPerTime, readable));
+            });
+        }
+
+        for (int i = 0; i < evaluator.Count; ++i)
+        {
+            Dbg.Inf($"{i} / {evaluator.Count}");
+            evaluator[i]();
         }
 
         foreach (var result in results.OrderByDescending(result => result.Item1))
