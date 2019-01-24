@@ -1,5 +1,6 @@
 
 using Newtonsoft.Json.Linq;
+using System;
 
 public static class Db
 {
@@ -11,7 +12,7 @@ public static class Db
         Realm = new SaintCoinach.ARealmReversed(GameDirectory, "../../../thirdparty/SaintCoinach/SaintCoinach/SaintCoinach.History.zip", SaintCoinach.Ex.Language.English);
         if (!Realm.IsCurrentVersion) {
             const bool IncludeDataChanges = true;
-            var updateReport = Realm.Update(IncludeDataChanges);
+            var updateReport = Realm.Update(IncludeDataChanges, new Progress<SaintCoinach.Ex.Relational.Update.UpdateProgress>(prog => Dbg.Inf(prog.ToString())));
         }
     }
 
