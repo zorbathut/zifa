@@ -230,7 +230,7 @@ public class Bootstrap
 
                 tcost += ingredient.Count * cost;
             }
-            readable += "\n" + $"  Total xp per gil: {combo.xp / tcost:F2}";
+            readable += "\n" + $"  Total cost {tcost}, total xp per gil: {combo.xp / tcost:F2}";
 
             Dbg.Inf(readable);
         }
