@@ -19,9 +19,9 @@ public class Bootstrap
         Db.Init();
 
         //DoGCScripAnalysis();
-        DoTomestoneAnalysis();
-        //DoRecipeAnalysis("weaver", 16);
-        //GatheringCalculator.ProcessLongterm(69, 0, 500, 6, false);
+        //DoTomestoneAnalysis();
+        //DoRecipeAnalysis("weaver", 1, 50, 54);
+        //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
     }
 
