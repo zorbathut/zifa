@@ -1,5 +1,5 @@
 
-using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System;
 
 public static class Db
@@ -29,5 +29,58 @@ public static class Db
     public static SaintCoinach.Xiv.Item Item(int id)
     {
         return GetSheet<SaintCoinach.Xiv.Item>()[id];
+    }
+
+    private static Dictionary<string, int> ItemLookup = null;
+    public static SaintCoinach.Xiv.Item Item(string name)
+    {
+        if (ItemLookup == null)
+        {
+            ItemLookup = new Dictionary<string, int>();
+            foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
+            {
+                if (ItemLookup.ContainsKey(item.Name))
+                {
+                    ItemLookup[item.Name] = -1;
+                }
+                else
+                {
+                    ItemLookup[item.Name] = item.Key;
+                }
+            }
+
+            Dbg.Inf("Generated item lookup table");
+        }
+
+        return Item(ItemLookup[name]);
+    }
+
+    private static Dictionary<SaintCoinach.Xiv.Item, SaintCoinach.Xiv.Recipe> RecipeLookup = null;
+    public static SaintCoinach.Xiv.Recipe Recipe(SaintCoinach.Xiv.Item item)
+    {
+        if (RecipeLookup == null)
+        {
+            RecipeLookup = new Dictionary<SaintCoinach.Xiv.Item, SaintCoinach.Xiv.Recipe>();
+            foreach (var recipe in GetSheet<SaintCoinach.Xiv.Recipe>())
+            {
+                if (recipe.ResultItem == null)
+                {
+                    continue;
+                }
+
+                if (RecipeLookup.ContainsKey(recipe.ResultItem))
+                {
+                    RecipeLookup[recipe.ResultItem] = null;
+                }
+                else
+                {
+                    RecipeLookup[recipe.ResultItem] = recipe;
+                }
+            }
+
+            Dbg.Inf("Generated recipe lookup table");
+        }
+
+        return RecipeLookup[item];
     }
 }

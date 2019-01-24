@@ -12,6 +12,12 @@ public class Bootstrap
         public string name;
     }
 
+    public class CollectibleCombination
+    {
+        public string item;
+        public int xp;
+    }
+
     public static void Main(string[] args)
     {
         Cache.Init();
@@ -23,6 +29,12 @@ public class Bootstrap
         //DoRecipeAnalysis("weaver", 1, 50, 54);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
+        /*
+        DoCollectibleCombinationMath(new CollectibleCombination[] {
+            new CollectibleCombination() { item = "Holy Rainbow Shoes", xp = 168480 },
+            new CollectibleCombination() { item = "Holy Rainbow Shirt of Scouting", xp = 116640 },
+            new CollectibleCombination() { item = "Rainbow Sash of Healing", xp = 79380 },
+        });*/
     }
 
     public static void DoGCScripAnalysis()
@@ -151,6 +163,7 @@ public class Bootstrap
 
         return new Tuple<float, string>(profitTimeAdjusted, readable);
     }
+
     public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax)
     {
         var results = new List<Tuple<float, string>>();
@@ -199,6 +212,27 @@ public class Bootstrap
         foreach (var result in results.OrderBy(result => result.Item1))
         {
             Dbg.Inf(result.Item2);
+        }
+    }
+
+    public static void DoCollectibleCombinationMath(CollectibleCombination[] combos)
+    {
+        foreach (var combo in combos)
+        {
+            var recipe = Db.Recipe(Db.Item(combo.item));
+
+            string readable = $"{combo.item}:";
+            float tcost = 0;
+            foreach (var ingredient in recipe.Ingredients)
+            {
+                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
+                readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
+
+                tcost += ingredient.Count * cost;
+            }
+            readable += "\n" + $"  Total xp per gil: {combo.xp / tcost:F2}";
+
+            Dbg.Inf(readable);
         }
     }
 }
