@@ -6,7 +6,13 @@ using System.Linq;
 
 public static class Commerce
 {
-    public static float ValueMarket(int id, bool hq)
+    public enum TransactionType
+    {
+        Longterm,
+        Immediate,
+    }
+
+    public static float ValueMarket(int id, bool hq, TransactionType type)
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
@@ -15,14 +21,37 @@ public static class Commerce
             return float.NaN;
         }
 
-        var results = Market.History(id);
+        float lqp;
+        float hqp;
+        float unfiltered;
 
-        var history = results["History"].OfType<JObject>();
+        if (type == TransactionType.Longterm)
+        {
+            var results = Market.History(id);
 
-        Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
+            var history = results["History"].OfType<JObject>();
 
-        float lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
-        float hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
+            Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
+
+            lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
+            hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
+            unfiltered = history.Select(builder).Median();
+        }
+        else if (type == TransactionType.Immediate)
+        {
+            var results = Market.Prices(id);
+
+            var prices = results["Prices"].OfType<JObject>();
+
+            lqp = prices.Where(item => item["IsHQ"].Value<bool>() == false).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+            hqp = prices.Where(item => item["IsHQ"].Value<bool>() == true).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+            unfiltered = prices.Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+        }
+        else
+        {
+            Dbg.Err("uhhhh wut");
+            return float.NaN;
+        }
 
         // If we have no data for either set, give it the other's data
         if (float.IsNaN(lqp))
@@ -37,7 +66,7 @@ public static class Commerce
         // If LQP is more expensive than HQP, return the unfiltered results
         if (lqp > hqp)
         {
-            return history.Select(builder).Median();
+            return unfiltered;
         }
 
         return hq ? hqp : lqp;
@@ -77,7 +106,7 @@ public static class Commerce
         }
         destination = "vendor";
 
-        float market = ValueMarket(id, hq) * 0.95f;
+        float market = ValueMarket(id, hq, Commerce.TransactionType.Longterm) * 0.95f;
         if (market > 0 && market > bestprice)
         {
             bestprice = market;
@@ -93,16 +122,16 @@ public static class Commerce
         return ValueSell(id, hq, out _);
     }
 
-    public static float ValueBuy(int id, bool hq, out string source)
+    public static float ValueBuy(int id, bool hq, TransactionType type, out string source)
     {
         // can't buy HQ stuff from vendors
         if (hq)
         {
             source = "market";
-            return ValueMarket(id, hq) * 1.05f;
+            return ValueMarket(id, hq, type) * 1.05f;
         }
 
-        float bestprice = ValueMarket(id, hq) * 1.05f;
+        float bestprice = ValueMarket(id, hq, type) * 1.05f;
         source = "market";
 
         var item = Db.Item(id);
@@ -122,10 +151,10 @@ public static class Commerce
         return bestprice;
     }
 
-    public static float ValueBuy(int id, bool hq)
+    public static float ValueBuy(int id, bool hq, TransactionType type)
     {
         string _;
-        return ValueBuy(id, hq, out _);
+        return ValueBuy(id, hq, type, out _);
     }
 
     private static HashSet<int> marketablesCache;

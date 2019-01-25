@@ -6,11 +6,12 @@ using System.Linq;
 
 public static class Market
 {
-    public static JObject History(int id)
+    private static TimeSpan AuctionInvalidationDuration(int id)
     {
         string key = $"/market/midgardsormr/items/{id}/history";
         var cached = Api.Retrieve(key, invalidation: TimeSpan.MaxValue);
 
+        TimeSpan invalidationTime;
         if (cached != null)
         {
             var history = cached["History"].OfType<JObject>();
@@ -21,12 +22,27 @@ public static class Market
 
             var medianAge = TimeSpan.FromSeconds(history.Select(item => new Util.Element { value = firstDate.ToUnixTimeSeconds() - item["PurchaseDate"].Value<long>(), count = item["Quantity"].Value<int>() }).Median());
 
-            var invalidation = TimeSpan.FromSeconds(MathUtil.Clamp(Math.Min(halfSpan.TotalSeconds, medianAge.TotalSeconds), 60 * 60 * 24, 60 * 60 * 24 * 14));
-
-            //Dbg.Inf($"Market request for {Db.Item(id).Name}: Halfspan is {halfSpan}, median is {medianAge}, final is {invalidation}");
-            return Api.Retrieve(key, invalidation: invalidation);
+            invalidationTime = TimeSpan.FromSeconds(MathUtil.Clamp(Math.Min(halfSpan.TotalSeconds, medianAge.TotalSeconds), 60 * 60 * 24, 60 * 60 * 24 * 14));
+        }
+        else
+        {
+            invalidationTime = TimeSpan.Zero;
         }
 
-        return Api.Retrieve(key, invalidation: TimeSpan.Zero);
+        // poke the history with the new invalidation time, just to properly cache the data we're using to generate this data
+
+        Api.Retrieve(key, invalidation: invalidationTime);
+
+        return invalidationTime;
+    }
+
+    public static JObject History(int id)
+    {
+        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", invalidation: AuctionInvalidationDuration(id));
+    }
+
+    public static JObject Prices(int id)
+    {
+        return Api.Retrieve($"/market/midgardsormr/items/{id}", invalidation: AuctionInvalidationDuration(id));
     }
 }

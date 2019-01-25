@@ -90,6 +90,19 @@ public static class Util
 
         yield return added;
     }
+
+    public static T FirstOrDefault<T>(this IEnumerable<T> source, T def)
+    {
+        using (IEnumerator<T> enumerator = source.GetEnumerator())
+        {
+            if (enumerator.MoveNext())
+            {
+                return enumerator.Current;
+            }
+        }
+        
+        return def;
+    }
 }
 
 public static class EnumUtil

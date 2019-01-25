@@ -16,7 +16,12 @@ public static class Category
     {
         new CategoryInfo
         {
-            regex = new Regex("^/market/.*/history$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            regex = new Regex("^/market/[a-z]+/items/[0-9]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            columns = "Prices.*.PricePerUnit,Prices.*.Quantity,Prices.*.IsHQ",
+        },
+        new CategoryInfo
+        {
+            regex = new Regex("^/market/[a-z]+/items/[0-9]+/history$", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             columns = "History.*.PricePerUnit,History.*.Quantity,History.*.IsHQ,History.*.PurchaseDate",
         },
     };

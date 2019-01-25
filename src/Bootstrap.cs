@@ -132,7 +132,7 @@ public class Bootstrap
         float tcost = 0;
         foreach (var ingredient in recipe.Ingredients)
         {
-            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
+            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, out string source);
             readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
             tcost += ingredient.Count * cost;
