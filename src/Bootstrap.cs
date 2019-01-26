@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Bootstrap
+public static class Bootstrap
 {
     public class Result
     {
@@ -31,10 +31,17 @@ public class Bootstrap
         //CraftingCalculator.Process();
         /*
         DoCollectibleCombinationMath(new CollectibleCombination[] {
-            new CollectibleCombination() { item = "Holy Rainbow Shoes", xp = 168480 },
+            new CollectibleCombination() { item = "Chimerical Felt Hose of Aiming", xp = 279936 },
+            new CollectibleCombination() { item = "Chimerical Felt Klobuk of Healing", xp = 205632 },
+            new CollectibleCombination() { item = "Hallowed Ramie Sash of Casting", xp = 155520 },
+            new CollectibleCombination() { item = "Ramie Cloth", xp = 166320 },
+            new CollectibleCombination() { item = "Holy Rainbow Shoes", xp = 140400 },
             new CollectibleCombination() { item = "Holy Rainbow Shirt of Scouting", xp = 116640 },
             new CollectibleCombination() { item = "Rainbow Sash of Healing", xp = 79380 },
-        });*/
+        });
+        */
+
+        Prompt.Run();
     }
 
     public static void DoGCScripAnalysis()
