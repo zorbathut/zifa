@@ -25,8 +25,8 @@ public class Bootstrap
         Db.Init();
 
         //DoGCScripAnalysis();
-        //DoTomestoneAnalysis();
-        //DoRecipeAnalysis("weaver", 1, 50, 54);
+        //DoPurchasableAnalysis(Db.Item("Red Gatherers' Scrip").Key);
+        //DoRecipeAnalysis("weaver", 1, 60, 55);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
         /*
@@ -75,7 +75,7 @@ public class Bootstrap
         }
     }
 
-    public static void DoTomestoneAnalysis()
+    public static void DoPurchasableAnalysis(int itemId)
     {
         var results = new List<Result>();
         var inspected = new HashSet<int>();
@@ -86,7 +86,7 @@ public class Bootstrap
                 int tomestones = 0;
                 foreach (var cost in listing.Costs)
                 {
-                    if (cost.Item == null || cost.Item.Key != 28)   // Poetics; break if it's anything else
+                    if (cost.Item == null || cost.Item.Key != itemId)
                     {
                         tomestones = -1;
                         break;
@@ -225,7 +225,7 @@ public class Bootstrap
             float tcost = 0;
             foreach (var ingredient in recipe.Ingredients)
             {
-                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, out string source);
+                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, out string source);
                 readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
                 tcost += ingredient.Count * cost;
