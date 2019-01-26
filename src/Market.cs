@@ -16,6 +16,11 @@ public static class Market
         {
             var history = cached["History"].OfType<JObject>();
 
+            if (history.Count() == 0)
+            {
+                return TimeSpan.FromDays(2);
+            }
+
             var firstDate = DateTimeOffset.FromUnixTimeSeconds(history.First()["PurchaseDate"].Value<long>());
             var lastDate = DateTimeOffset.FromUnixTimeSeconds(history.Last()["PurchaseDate"].Value<long>());
             var halfSpan = TimeSpan.FromSeconds((firstDate - lastDate).TotalSeconds / 2);
