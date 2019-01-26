@@ -35,7 +35,14 @@ public static class Prompt
 
     public static void DoPurchasableAnalysis(int itemId)
     {
-        var results = new List<Bootstrap.Result>();
+        foreach (var result in PurchasableAnalysisWorker(itemId).OrderBy(item => item.gps))
+        {
+            Dbg.Inf($"{result.gps:F2}: {result.name}");
+        }
+    }
+
+    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId)
+    {
         var inspected = new HashSet<int>();
         foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
         {
@@ -58,31 +65,39 @@ public static class Prompt
                     continue;
                 }
 
-                float value = 0;
-                string label = "";
-                foreach (var reward in listing.Rewards)
+                if (listing.Rewards.Count() > 1)
                 {
-                    if (reward.Item.Key == 0 || reward.Item.IsUntradable)
-                    {
-                        continue;
-                    }
-
-                    value += Commerce.ValueSell(reward.Item.Key, reward.IsHq) * reward.Count / Commerce.MarketProfitDelayQuotient(reward.Item.Key);
-                    label += $"{reward.Item.Name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")} ";
+                    yield return new Bootstrap.Result() { gps = 0, name = "TOO MANY RESULTS" };
+                    continue;
                 }
 
-                if (value > 0)
+                if (listing.Rewards.Count() == 0)
                 {
-                    results.Add(new Bootstrap.Result() { gps = value / tomestones, name = label });
+                    continue;
+                }
+
+                var reward = listing.Rewards.First();
+
+                if (reward.Item.Key == 0)
+                {
+                    continue;
+                }
+
+                var label = $"{reward.Item.Name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
+
+                if (reward.Item.IsUntradable)
+                {
+                    foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key))
+                    {
+                        yield return new Bootstrap.Result() { gps = elem.gps / tomestones, name = $"{label} -> {elem.name}" };
+                    }
+                }
+                else
+                {
+                    float value = Commerce.ValueSell(reward.Item.Key, reward.IsHq) * reward.Count / Commerce.MarketProfitDelayQuotient(reward.Item.Key);
+                    yield return new Bootstrap.Result() { gps = value / tomestones, name = label };
                 }
             }
-        }
-
-        results.Sort((lhs, rhs) => lhs.gps < rhs.gps);
-
-        foreach (var result in results)
-        {
-            Dbg.Inf($"{result.gps:F2}: {result.name}");
         }
     }
 
