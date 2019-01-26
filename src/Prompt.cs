@@ -70,7 +70,6 @@ public static class Prompt
                 {
                     Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
                 }
-                // how many points
             }
         }
     }
