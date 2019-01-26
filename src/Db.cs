@@ -55,6 +55,29 @@ public static class Db
         return Item(ItemLookup[name]);
     }
 
+    public static SaintCoinach.Xiv.Item ItemLoose(string[] tokens)
+    {
+        foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
+        {
+            bool good = true;
+            foreach (var token in tokens)
+            {
+                if (item.Name.ToString().IndexOf(token, StringComparison.CurrentCultureIgnoreCase) == -1)
+                {
+                    good = false;
+                    break;
+                }
+            }
+
+            if (good)
+            {
+                return item;
+            }
+        }
+
+        return null;
+    }
+
     private static Dictionary<SaintCoinach.Xiv.Item, SaintCoinach.Xiv.Recipe> RecipeLookup = null;
     public static SaintCoinach.Xiv.Recipe Recipe(SaintCoinach.Xiv.Item item)
     {

@@ -25,7 +25,6 @@ public static class Bootstrap
         Db.Init();
 
         //DoGCScripAnalysis();
-        //DoPurchasableAnalysis(Db.Item("Red Gatherers' Scrip").Key);
         //DoRecipeAnalysis("weaver", 1, 60, 55);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
@@ -71,56 +70,6 @@ public static class Bootstrap
                 float gps = (float)Commerce.ValueSell(id, false) / scripEntry.GCSealsCost;
 
                 results.Add(new Result() { gps = gps, name = item.Name });
-            }
-        }
-
-        results.Sort((lhs, rhs) => lhs.gps < rhs.gps);
-
-        foreach (var result in results)
-        {
-            Dbg.Inf($"{result.gps:F2}: {result.name}");
-        }
-    }
-
-    public static void DoPurchasableAnalysis(int itemId)
-    {
-        var results = new List<Result>();
-        var inspected = new HashSet<int>();
-        foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
-        {
-            foreach (var listing in shop.Items)
-            {
-                int tomestones = 0;
-                foreach (var cost in listing.Costs)
-                {
-                    if (cost.Item == null || cost.Item.Key != itemId)
-                    {
-                        tomestones = -1;
-                        break;
-                    }
-
-                    tomestones = cost.Count;
-                }
-
-                if (tomestones <= 0)
-                {
-                    continue;
-                }
-
-                float value = 0;
-                string label = "";
-                foreach (var reward in listing.Rewards)
-                {
-                    if (reward.Item.Key == 0 || reward.Item.IsUntradable)
-                    {
-                        continue;
-                    }
-
-                    value += Commerce.ValueSell(reward.Item.Key, reward.IsHq) * reward.Count / Commerce.MarketProfitDelayQuotient(reward.Item.Key);
-                    label += $"{reward.Item.Name}x{reward.Count}{(reward.IsHq ? "HQ" : "")} ";
-                }
-
-                results.Add(new Result() { gps = value / tomestones, name = label });
             }
         }
 
