@@ -55,7 +55,7 @@ public static class Db
         return Item(ItemLookup[name]);
     }
 
-    public static SaintCoinach.Xiv.Item ItemLoose(string[] tokens)
+    public static IEnumerable<SaintCoinach.Xiv.Item> ItemLoose(string[] tokens)
     {
         foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
         {
@@ -71,11 +71,9 @@ public static class Db
 
             if (good)
             {
-                return item;
+                yield return item;
             }
         }
-
-        return null;
     }
 
     private static Dictionary<SaintCoinach.Xiv.Item, SaintCoinach.Xiv.Recipe> RecipeLookup = null;

@@ -9,6 +9,7 @@ public static class Prompt
 {
     private static Regex PointRegex = new Regex("^gpoint( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex ValueRegex = new Regex("^vendornet( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -19,6 +20,7 @@ public static class Prompt
             Dbg.Inf("Options:");
             Dbg.Inf("  gpoint wind coin");
             Dbg.Inf("  vendornet tomestone poetic");
+            Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("");
 
             string instr = Console.ReadLine();
@@ -28,7 +30,11 @@ public static class Prompt
             }
             else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
             {
-                DoPurchasableAnalysis(Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).Key);
+                DoPurchasableAnalysis(Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).First().Key);
+            }
+            else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
+            {
+                DoItemAnalysis(Db.ItemLoose(amatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()));
             }
         }
     }
@@ -147,6 +153,18 @@ public static class Prompt
         foreach (var item in items.Select(id => Tuple.Create(Db.Item(id), Commerce.ValueSell(id, false))).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
+        }
+    }
+
+    public static void DoItemAnalysis(IEnumerable<SaintCoinach.Xiv.Item> items)
+    {
+        foreach (var item in items)
+        {
+            Dbg.Inf("");
+            Dbg.Inf($"{item.Name}:");
+            Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate)}:");
+            Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm)}:");
+            Dbg.Inf($"  Market delay quotient: {Commerce.MarketProfitDelayQuotient(item.Key)}:");
         }
     }
 }

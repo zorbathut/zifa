@@ -84,6 +84,11 @@ public static class Commerce
         var results = Market.History(id);
 
         var history = results["History"].OfType<JObject>();
+        if (!history.Any())
+        {
+            // welp
+            return float.NaN;
+        }
 
         long lastDate = history.Last()["PurchaseDate"].Value<long>();
         long span = DateTimeOffset.Now.ToUnixTimeSeconds() - lastDate;
