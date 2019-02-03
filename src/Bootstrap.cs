@@ -98,7 +98,7 @@ public static class Bootstrap
 
         // Adjust profit
         // HQing things is hard, assume we're willing to sell at most ten per day
-        float profitTimeAdjusted = Commerce.MarketProfitAdjuster(profit, result.Key, hq ? 10 : int.MaxValue);
+        float profitTimeAdjusted = Commerce.MarketProfitAdjuster(profit, result.Key, hq ? 10 : 99);
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
         readable += "\n";

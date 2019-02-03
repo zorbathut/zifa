@@ -92,7 +92,7 @@ public static class Prompt
                 }
 
                 string name = reward.Item.Name;
-                var label = $"{reward.Item.Name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
+                var label = $"{name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
 
                 // I DON'T TRUST THIS RIGHT NOW
                 if (reward.Item.IsUntradable)
@@ -169,9 +169,11 @@ public static class Prompt
             Dbg.Inf($"{item.Name}:");
             Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate)}");
             Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm)}");
+            Dbg.Inf($"  Market sales per day: {Commerce.MarketSalesPerDay(item.Key)}");
             Dbg.Inf($"  Market profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1)}");
             Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10)}");
-            Dbg.Inf($"  Market profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, int.MaxValue)}");
+            Dbg.Inf($"  Market profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99)}");
+            Dbg.Inf($"  Market profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, item.StackSize)}");
         }
     }
 }

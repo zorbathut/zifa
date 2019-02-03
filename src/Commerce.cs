@@ -114,16 +114,11 @@ public static class Commerce
             return profit;
         }
 
-        // Current logic: Assume we have the "acquired" size, capped at a full stack.
-        // Figure out our expected profit per day based on putting that up on the market.
-        // We expect to modify the "acquired" size based on expected difficulty of acquiring it.
-
-        float stack = Math.Min(Math.Min(Db.Item(id).StackSize, acquired), 99);
         float salesPerDay = MarketSalesPerDay(id);
 
-        float effectiveSalesPerDay = Math.Min(salesPerDay, stack);
+        float daysToSell = acquired / salesPerDay;
 
-        return profit * effectiveSalesPerDay;
+        return profit / Math.Max(daysToSell, 1);
     }
 
     public static float ValueSell(int id, bool hq, out string destination)
