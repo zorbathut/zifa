@@ -72,7 +72,7 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
-    public static float MarketProfitDelayQuotient(int id)
+    public static float MarketSalesPerDay(int id)
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
@@ -90,12 +90,40 @@ public static class Commerce
             return float.NaN;
         }
 
+        // due to caching, we may not have up-to-date results, so we pretend we polled on the first item to get useful stats
+        long firstDate = history.First()["PurchaseDate"].Value<long>();
         long lastDate = history.Last()["PurchaseDate"].Value<long>();
-        long span = DateTimeOffset.Now.ToUnixTimeSeconds() - lastDate;
+        if (firstDate == lastDate)
+        {
+            // this isn't ideal, but okay
+            firstDate = DateTimeOffset.Now.ToUnixTimeSeconds();
+        }
 
-        int totalQuantity = history.Sum(item => item["Quantity"].Value<int>());
+        long span = firstDate - lastDate;
 
-        return Math.Max(1f / Math.Min(99, itemdb.StackSize), (float)span / totalQuantity / 86400);
+        // skip the first so we're not biasing very positive
+        int totalQuantity = history.Skip(1).Sum(item => item["Quantity"].Value<int>());
+
+        return (float)totalQuantity / span * 60 * 60 * 24;
+    }
+
+    public static float MarketProfitAdjuster(float profit, int id, float acquired)
+    {
+        if (profit < 0)
+        {
+            return profit;
+        }
+
+        // Current logic: Assume we have the "acquired" size, capped at a full stack.
+        // Figure out our expected profit per day based on putting that up on the market.
+        // We expect to modify the "acquired" size based on expected difficulty of acquiring it.
+
+        float stack = Math.Min(Math.Min(Db.Item(id).StackSize, acquired), 99);
+        float salesPerDay = MarketSalesPerDay(id);
+
+        float effectiveSalesPerDay = Math.Min(salesPerDay, stack);
+
+        return profit * effectiveSalesPerDay;
     }
 
     public static float ValueSell(int id, bool hq, out string destination)

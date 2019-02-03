@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 public static class Prompt
 {
     private static Regex PointRegex = new Regex("^gpoint( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex ValueRegex = new Regex("^vendornet( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex ValueRegex = new Regex("^vendornet (?<amount>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
@@ -19,7 +19,7 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf("Options:");
             Dbg.Inf("  gpoint wind coin");
-            Dbg.Inf("  vendornet tomestone poetic");
+            Dbg.Inf("  vendornet 2000 tomestone poetic");
             Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("");
 
@@ -30,7 +30,9 @@ public static class Prompt
             }
             else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
             {
-                DoPurchasableAnalysis(Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).First().Key);
+                int amount = int.Parse(vmatch.Groups["amount"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).First());
+                var item = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).First();
+                DoPurchasableAnalysis(item.Key, amount);
             }
             else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
             {
@@ -39,34 +41,34 @@ public static class Prompt
         }
     }
 
-    public static void DoPurchasableAnalysis(int itemId)
+    public static void DoPurchasableAnalysis(int itemId, int amount)
     {
-        foreach (var result in PurchasableAnalysisWorker(itemId).OrderBy(item => item.gps))
+        foreach (var result in PurchasableAnalysisWorker(itemId, amount).OrderBy(item => item.gps))
         {
             Dbg.Inf($"{result.gps:F2}: {result.name}");
         }
     }
 
-    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId)
+    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId, float amountAcquired)
     {
         var inspected = new HashSet<int>();
         foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
         {
             foreach (var listing in shop.Items)
             {
-                int tomestones = 0;
-                foreach (var cost in listing.Costs)
+                int cost = 0;
+                foreach (var costElement in listing.Costs)
                 {
-                    if (cost.Item == null || cost.Item.Key != itemId)
+                    if (costElement.Item == null || costElement.Item.Key != itemId)
                     {
-                        tomestones = -1;
+                        cost = -1;
                         break;
                     }
 
-                    tomestones = cost.Count;
+                    cost = costElement.Count;
                 }
 
-                if (tomestones <= 0)
+                if (cost <= 0)
                 {
                     continue;
                 }
@@ -89,19 +91,22 @@ public static class Prompt
                     continue;
                 }
 
+                string name = reward.Item.Name;
                 var label = $"{reward.Item.Name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
 
+                // I DON'T TRUST THIS RIGHT NOW
                 if (reward.Item.IsUntradable)
                 {
-                    foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key))
+                    foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key, amountAcquired / cost * reward.Count))
                     {
-                        yield return new Bootstrap.Result() { gps = elem.gps / tomestones, name = $"{label} -> {elem.name}" };
+                        yield return new Bootstrap.Result() { gps = elem.gps / cost * reward.Count, name = $"{label} -> {elem.name}" };
                     }
                 }
                 else
                 {
-                    float value = Commerce.ValueSell(reward.Item.Key, reward.IsHq) * reward.Count / Commerce.MarketProfitDelayQuotient(reward.Item.Key);
-                    yield return new Bootstrap.Result() { gps = value / tomestones, name = label };
+                    float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq) * reward.Count;
+                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost);
+                    yield return new Bootstrap.Result() { gps = valueAdjusted / cost, name = label };
                 }
             }
         }
@@ -150,7 +155,7 @@ public static class Prompt
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        foreach (var item in items.Select(id => Tuple.Create(Db.Item(id), Commerce.ValueSell(id, false))).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.Select(id => Tuple.Create(Db.Item(id), Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false), id, 30))).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -162,9 +167,11 @@ public static class Prompt
         {
             Dbg.Inf("");
             Dbg.Inf($"{item.Name}:");
-            Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate)}:");
-            Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm)}:");
-            Dbg.Inf($"  Market delay quotient: {Commerce.MarketProfitDelayQuotient(item.Key)}:");
+            Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate)}");
+            Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm)}");
+            Dbg.Inf($"  Market profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1)}");
+            Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10)}");
+            Dbg.Inf($"  Market profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, int.MaxValue)}");
         }
     }
 }

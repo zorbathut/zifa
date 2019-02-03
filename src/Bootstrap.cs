@@ -95,24 +95,10 @@ public static class Bootstrap
         }
 
         float profit = expectedRevenue - tcost;
-        float profitTimeAdjusted;
 
-        if (profit > 0)
-        {
-            // Modify weighting for profitable things that sell slowly
-            float delay = Commerce.MarketProfitDelayQuotient(result.Key);
-            if (hq)
-            {
-                // HQing things is hard; ramp the delay way up
-                delay = Math.Max(delay, 0.2f);
-            }
-
-            profitTimeAdjusted = profit / delay;
-        }
-        else
-        {
-            profitTimeAdjusted = profit;
-        }
+        // Adjust profit
+        // HQing things is hard, assume we're willing to sell at most ten per day
+        float profitTimeAdjusted = Commerce.MarketProfitAdjuster(profit, result.Key, hq ? 10 : int.MaxValue);
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
         readable += "\n";
