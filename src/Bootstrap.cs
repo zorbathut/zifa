@@ -67,7 +67,7 @@ public static class Bootstrap
             {
                 inspected.Add(id);
 
-                float gps = (float)Commerce.ValueSell(id, false) / scripEntry.GCSealsCost;
+                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false) / scripEntry.GCSealsCost, id, 40000 / scripEntry.GCSealsCost);
 
                 results.Add(new Result() { gps = gps, name = item.Name });
             }
