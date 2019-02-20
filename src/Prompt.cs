@@ -179,6 +179,7 @@ public static class Prompt
             Dbg.Inf($"{item.Name}:");
             Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate)}");
             Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm)}");
+            Dbg.Inf($"  Market fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell)}");
             Dbg.Inf($"  Market sales per day: {Commerce.MarketSalesPerDay(item.Key)}");
             Dbg.Inf($"  Market profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1)}");
             Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10)}");

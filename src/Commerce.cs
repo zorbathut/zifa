@@ -10,6 +10,7 @@ public static class Commerce
     {
         Longterm,
         Immediate,
+        Fastsell,
     }
 
     public static float ValueMarket(int id, bool hq, TransactionType type)
@@ -46,6 +47,30 @@ public static class Commerce
             lqp = prices.Where(item => item["IsHQ"].Value<bool>() == false).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
             hqp = prices.Where(item => item["IsHQ"].Value<bool>() == true).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
             unfiltered = prices.Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+        }
+        else if (type == TransactionType.Fastsell)
+        {
+            var resulthistory = Market.History(id);
+
+            var history = resulthistory["History"].OfType<JObject>();
+
+            Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
+
+            float hlqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
+            float hhqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
+            float hunfiltered = history.Select(builder).Median();
+
+            var resultprices = Market.Prices(id);
+
+            var prices = resultprices["Prices"].OfType<JObject>();
+
+            float phqp = prices.Where(item => item["IsHQ"].Value<bool>() == true).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+            float punfiltered = prices.Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+
+            // TODO MIN OR NAN
+            lqp = Math.Min(hlqp, punfiltered);
+            hqp = Math.Min(hhqp, punfiltered);
+            unfiltered = Math.Min(hunfiltered, punfiltered);
         }
         else
         {
@@ -134,7 +159,7 @@ public static class Commerce
         }
         destination = "vendor";
 
-        float market = ValueMarket(id, hq, Commerce.TransactionType.Longterm) * 0.95f;
+        float market = ValueMarket(id, hq, Commerce.TransactionType.Fastsell) * 0.95f;
         if (market > 0 && market > bestprice)
         {
             bestprice = market;
