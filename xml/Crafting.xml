@@ -1,0 +1,41 @@
+<Defs>
+  <CraftingAbilityDef defName="BasicSynthesis">
+    <success class="SuccessSimple">
+      <chance>90</chance>
+    </success>
+    <effect class="EffectSimple">
+      <progress>100</progress>
+    </effect>
+  </CraftingAbilityDef>
+
+  <CraftingAbilityDef defName="BasicTouch">
+    <requirement class="RequirementSimple">
+      <cp>18</cp>
+    </requirement>
+    <success class="SuccessSimple">
+      <chance>70</chance>
+    </success>
+    <effect class="EffectSimple">
+      <quality>100</quality>
+    </effect>
+  </CraftingAbilityDef>
+
+  <CraftingAbilityDef defName="MastersMend">
+    <requirement class="RequirementSimple">
+      <cp>92</cp>
+    </requirement>
+    <effect class="EffectSimple">
+      <durability>30</durability>
+      <durabilityCost>0</durabilityCost>
+    </effect>
+  </CraftingAbilityDef>
+
+  <CraftingAbilityDef defName="SteadyHand">
+    <requirement class="RequirementSimple">
+      <cp>22</cp>
+    </requirement>
+    <effect class="EffectSimple">
+      <durabilityCost>0</durabilityCost>
+    </effect>
+  </CraftingAbilityDef>
+</Defs>

@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zifa", "src\zifa.csproj", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SaintCoinach", "thirdparty\SaintCoinach\SaintCoinach\SaintCoinach.csproj", "{8A7D65EB-3DE3-4631-B286-CC73A3126002}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "def", "thirdparty\def\src\def.csproj", "{7E22D84E-D7B3-4CD2-B33C-7D031B8F0E10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{8A7D65EB-3DE3-4631-B286-CC73A3126002}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A7D65EB-3DE3-4631-B286-CC73A3126002}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A7D65EB-3DE3-4631-B286-CC73A3126002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E22D84E-D7B3-4CD2-B33C-7D031B8F0E10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E22D84E-D7B3-4CD2-B33C-7D031B8F0E10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E22D84E-D7B3-4CD2-B33C-7D031B8F0E10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E22D84E-D7B3-4CD2-B33C-7D031B8F0E10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

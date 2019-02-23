@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 public static class Bootstrap
 {
@@ -24,10 +25,19 @@ public static class Bootstrap
         Api.Init();
         Db.Init();
 
+        {
+            var parser = new Def.Parser();
+            foreach (var file in new DirectoryInfo(@"../../../xml").GetFiles("*.xml"))
+            {
+                parser.AddString(File.ReadAllText(file.FullName), file.Name);
+            }
+            parser.Finish();
+        }
+
         //DoGCScripAnalysis();
-        //DoRecipeAnalysis("weaver", 1, 60, 55);
+        //DoRecipeAnalysis("weaver", 1, 63, 57);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
-        //CraftingCalculator.Process();
+        CraftingCalculator.Process();
         /*
         DoCollectibleCombinationMath(new CollectibleCombination[] {
             new CollectibleCombination() { item = "Chimerical Felt Hose of Aiming", xp = 279936 },
