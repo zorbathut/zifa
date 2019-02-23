@@ -60,7 +60,7 @@ public class SuccessSimple : Success
 
     public override int Chance(CraftingCalculator.CraftingState input)
     {
-        return chance;
+        return MathUtil.Clamp(chance + (input.steadyHand > 0 ? 20 : 0), 0, 100);
     }
 }
 
@@ -82,6 +82,21 @@ public class EffectSimple : Effect
         }
 
         input.Tick(durabilityCost: durabilityCost);
+
+        return input;
+    }
+}
+
+public class EffectSteadyHand : Effect
+{
+    public override CraftingCalculator.CraftingState Apply(CraftingCalculator.CraftingState input, CraftingCalculator.GlobalState global, bool success)
+    {
+        input.Tick(durabilityCost: 0);
+
+        if (success)
+        {
+            input.steadyHand = 5;
+        }
 
         return input;
     }

@@ -34,8 +34,6 @@
     <requirement class="RequirementSimple">
       <cp>22</cp>
     </requirement>
-    <effect class="EffectSimple">
-      <durabilityCost>0</durabilityCost>
-    </effect>
+    <effect class="EffectSteadyHand" />
   </CraftingAbilityDef>
 </Defs>

@@ -155,7 +155,7 @@ public static class CraftingCalculator
             }
             else if (input == "n" || input == "N")
             {
-                currentState = currentResult.nextAction.Perform(currentState, globalState, true);
+                currentState = currentResult.nextAction.Perform(currentState, globalState, false);
                 if (currentState.condition == Condition.Distribute) currentState.condition = Condition.Normal;
             }
             else if (input == "e" || input == "E")
