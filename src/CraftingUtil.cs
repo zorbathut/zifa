@@ -51,7 +51,7 @@ public static class CraftingUtil
         {
             int qualityVal = (int)(maxQuality * QualityFromHqPercent(pct) / 100);
 
-            while (results.Count < maxQuality && results.Count < qualityVal)
+            while (results.Count <= maxQuality && results.Count <= qualityVal)
             {
                 results.Add(pct / 100f);
             }
@@ -60,7 +60,7 @@ public static class CraftingUtil
         return results;
     }
 
-    public static float BaseProgressIncrease(CraftingCalculator.GlobalState globalState)
+    public static float BaseProgressIncrease(CraftingCalculator.CraftingState craftingState, CraftingCalculator.GlobalState globalState)
     {
         float baseProgress = 0;
         if (globalState.crafterLevel > 250)
@@ -95,9 +95,14 @@ public static class CraftingUtil
         return baseProgress * (1 + levelCorrectionFactor) * (1 + recipeLevelPenalty);
     }
 
-    public static float BaseQualityIncrease(CraftingCalculator.GlobalState globalState)
+    public static float BaseQualityIncrease(CraftingCalculator.CraftingState craftingState, CraftingCalculator.GlobalState globalState)
     {
-        float baseQuality = 3.46e-5f * globalState.crafterControl * globalState.crafterControl + 0.3514f * globalState.crafterControl + 34.66f;
+        float effectiveControl = globalState.crafterControl;
+
+        // factor in Inner Quiet
+        effectiveControl += effectiveControl * Math.Max(craftingState.innerQuiet - 1, 0) * 0.2f;
+
+        float baseQuality = 3.46e-5f * effectiveControl * effectiveControl + 0.3514f * effectiveControl + 34.66f;
 
         float recipeLevelPenalty = 0;
         if (globalState.recipeLevel > 50)

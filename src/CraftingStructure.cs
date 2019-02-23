@@ -54,6 +54,21 @@ public class RequirementSimple : Requirement
     }
 }
 
+public class RequirementInnerQuiet : RequirementSimple
+{
+    public override CraftingCalculator.CraftingState Validate(CraftingCalculator.CraftingState input)
+    {
+        input = base.Validate(input);
+
+        if (input.innerQuiet != 0)
+        {
+            input.durability = 0;
+        }
+
+        return input;
+    }
+}
+
 public class SuccessSimple : Success
 {
     int chance = 0;
@@ -76,8 +91,14 @@ public class EffectSimple : Effect
     {
         if (success)
         {
-            input.progress += (int)CraftingUtil.BaseProgressIncrease(global) * progress / 100;
-            input.quality += (int)CraftingUtil.BaseQualityIncrease(global) * quality / 100;
+            input.progress += (int)CraftingUtil.BaseProgressIncrease(input, global) * progress / 100;
+
+            if (quality > 0)
+            {
+                input.quality += (int)CraftingUtil.BaseQualityIncrease(input, global) * quality / 100;
+                input.ProcQualityIncrease();
+            }
+            
             input.durability = Math.Min(global.maxDurability, input.durability + durability);
         }
 
@@ -96,6 +117,21 @@ public class EffectSteadyHand : Effect
         if (success)
         {
             input.steadyHand = 5;
+        }
+
+        return input;
+    }
+}
+
+public class EffectInnerQuiet : Effect
+{
+    public override CraftingCalculator.CraftingState Apply(CraftingCalculator.CraftingState input, CraftingCalculator.GlobalState global, bool success)
+    {
+        input.Tick(durabilityCost: 0);
+
+        if (success)
+        {
+            input.innerQuiet = 1;
         }
 
         return input;

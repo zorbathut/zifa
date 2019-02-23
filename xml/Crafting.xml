@@ -36,4 +36,11 @@
     </requirement>
     <effect class="EffectSteadyHand" />
   </CraftingAbilityDef>
+  
+  <CraftingAbilityDef defName="InnerQuiet">
+    <requirement class="RequirementInnerQuiet">
+      <cp>18</cp>
+    </requirement>
+    <effect class="EffectInnerQuiet" />
+  </CraftingAbilityDef>
 </Defs>

@@ -55,13 +55,20 @@ public static class CraftingCalculator
         {
             durability -= durabilityCost;
 
-            innerQuiet = (sbyte)Math.Max(innerQuiet - 1, 0);
             steadyHand = (sbyte)Math.Max(steadyHand - 1, 0);
             greatStrides = (sbyte)Math.Max(greatStrides - 1, 0);
 
             if (condition == Condition.Excellent) condition = Condition.Poor;
             else if (condition == Condition.Poor || condition == Condition.Good) condition = Condition.Normal;
             else condition = Condition.Distribute;
+        }
+
+        public void ProcQualityIncrease()
+        {
+            if (innerQuiet > 0)
+            {
+                innerQuiet = (sbyte)Math.Min(innerQuiet + 1, 12);
+            }
         }
 
         public int SuccessBonus()
@@ -119,10 +126,10 @@ public static class CraftingCalculator
         globalState.cache = new Dictionary<CraftingState, CraftingResult>();
         globalState.CacheValues();
 
-        Dbg.Inf($"Base progress increase: {CraftingUtil.BaseProgressIncrease(globalState)}");
-        Dbg.Inf($"Base quality increase: {CraftingUtil.BaseQualityIncrease(globalState)}");
-
         var startState = new CraftingState() { durability = globalState.maxDurability, cp = globalState.maxCP };
+
+        Dbg.Inf($"Base progress increase: {CraftingUtil.BaseProgressIncrease(startState, globalState)}");
+        Dbg.Inf($"Base quality increase: {CraftingUtil.BaseQualityIncrease(startState, globalState)}");
 
         Dbg.Inf($"Working . . .");
 
