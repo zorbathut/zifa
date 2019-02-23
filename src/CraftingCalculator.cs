@@ -16,11 +16,16 @@ public static class CraftingCalculator
         SteadyHand,
         InnerQuiet,
         Observe,
-        CarefulSynthesis,
         StandardTouch,
         GreatStrides,
         MastersMend2,
         StandardSynthesis,
+        AdvancedTouch,
+        ByregotsBrow,
+
+        // Weaver
+        CarefulSynthesis,
+        CarefulSynthesis2,
     }
 
     const int BasicTouchCost = 18;
@@ -108,8 +113,11 @@ public static class CraftingCalculator
 
         var startState = new CraftingState() { durability = globalState.maxDurability, cp = globalState.maxCP };
 
+        Dbg.Inf($"Working . . .");
+
         var result = OptimizeResult(startState, globalState);
 
+        Dbg.Inf($"Cache size: {globalState.cache.Count}");
         Dbg.Inf($"Expected score: {result.expectedScore}");
 
         Dbg.Inf("");
@@ -132,20 +140,39 @@ public static class CraftingCalculator
             if (input == "y" || input == "Y")
             {
                 currentState = DoCommand(currentState, globalState, currentResult.nextAction, true);
+                if (currentState.condition == Condition.Distribute) currentState.condition = Condition.Normal;
             }
             else if (input == "n" || input == "N")
             {
                 currentState = DoCommand(currentState, globalState, currentResult.nextAction, false);
+                if (currentState.condition == Condition.Distribute) currentState.condition = Condition.Normal;
+            }
+            else if (input == "e" || input == "E")
+            {
+                currentState.condition = Condition.Excellent;
+            }
+            else if (input == "g" || input == "G")
+            {
+                currentState.condition = Condition.Good;
+            }
+            else if (input == "o" || input == "O")
+            {
+                currentState.condition = Condition.Normal;
+            }
+            else if (input == "p" || input == "P")
+            {
+                currentState.condition = Condition.Poor;
             }
             else
             {
-                Dbg.Inf("Invalid input, please enter y or n for success or failure");
+                Dbg.Inf("Invalid input, please enter y/n for success/failure, or e/g/o/p to manually set condition");
             }
         }
 
         Dbg.Inf("Done!");
     }
 
+    // Takes state and simply does the cache lookup.
     private static CraftingResult OptimizeResult(CraftingState craftingState, GlobalState globalState)
     {
         if (!globalState.cache.ContainsKey(craftingState))
@@ -156,8 +183,10 @@ public static class CraftingCalculator
         return globalState.cache[craftingState];
     }
 
+    // Does the actual optimization for finding the next best step. Handles success and failure, handles the condition split, then handles the actual events.
     private static CraftingResult OptimizeResultImmediate(CraftingState craftingState, GlobalState globalState)
     {
+        // End condition: success!
         if (craftingState.progress >= globalState.totalProgress)
         {
             var result = new CraftingResult();
@@ -165,11 +194,34 @@ public static class CraftingCalculator
             return result;
         }
 
+        // End condition: failure!
         if (craftingState.durability <= 0)
         {
             var result = new CraftingResult();
             result.expectedScore = 0;
             return result;
+        }
+
+        // Condition split!
+        if (craftingState.condition == Condition.Distribute)
+        {
+            float excellentChance = CraftingUtil.ConditionChanceExcellent(globalState.recipeLevel);
+            float goodChance = CraftingUtil.ConditionChanceGood(globalState.recipeLevel, globalState.crafterLevel);
+            float normalChance = 1f - goodChance - excellentChance;
+
+            craftingState.condition = Condition.Excellent;
+            CraftingResult excellentResult = OptimizeResult(craftingState, globalState);
+
+            craftingState.condition = Condition.Good;
+            CraftingResult goodResult = OptimizeResult(craftingState, globalState);
+
+            craftingState.condition = Condition.Normal;
+            CraftingResult normalResult = OptimizeResult(craftingState, globalState);
+
+            CraftingResult compositeResult = normalResult;
+            compositeResult.expectedScore = excellentChance * excellentResult.expectedScore + goodChance * goodResult.expectedScore + normalChance * normalResult.expectedScore;
+
+            return compositeResult;
         }
 
         var best = new CraftingResult();
@@ -246,6 +298,7 @@ public static class CraftingCalculator
         return best;
     }
 
+    // Executes a single action.
     private static CraftingState DoCommand(CraftingState craftingState, GlobalState globalState, Action action, bool outcome)
     {
         if (action == Action.BasicSynthesis)
