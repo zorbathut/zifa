@@ -43,4 +43,39 @@
     </requirement>
     <effect class="EffectInnerQuiet" />
   </CraftingAbilityDef>
+  
+  <CraftingAbilityDef defName="Observe">
+    <requirement class="RequirementSimple">
+      <cp>7</cp>
+    </requirement>
+    <effect class="EffectSimple" />
+  </CraftingAbilityDef>
+  
+  <CraftingAbilityDef defName="CarefulSynthesis">
+    <success class="SuccessSimple">
+      <chance>100</chance>
+    </success>
+    <effect class="EffectSimple">
+      <progress>90</progress>
+    </effect>
+  </CraftingAbilityDef>
+  
+  <CraftingAbilityDef defName="StandardTouch">
+    <requirement class="RequirementSimple">
+      <cp>32</cp>
+    </requirement>
+    <success class="SuccessSimple">
+      <chance>80</chance>
+    </success>
+    <effect class="EffectSimple">
+      <quality>125</quality>
+    </effect>
+  </CraftingAbilityDef>
+  
+  <CraftingAbilityDef defName="GreatStrides">
+    <requirement class="RequirementSimple">
+      <cp>32</cp>
+    </requirement>
+    <effect class="EffectGreatStrides" />
+  </CraftingAbilityDef>
 </Defs>

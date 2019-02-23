@@ -134,6 +134,13 @@ public static class CraftingUtil
             levelCorrectionFactor = 0.05f * Math.Max(levelDifference, -10);
         }
 
-        return baseQuality * (1 + levelCorrectionFactor) * (1 + recipeLevelPenalty);
+        float baseIncrease = baseQuality * (1 + levelCorrectionFactor) * (1 + recipeLevelPenalty);
+
+        if (craftingState.greatStrides > 0)
+        {
+            baseIncrease *= 2;
+        }
+
+        return baseIncrease;
     }
 }

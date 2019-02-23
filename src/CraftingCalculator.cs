@@ -193,9 +193,17 @@ public static class CraftingCalculator
     // Takes state and simply does the cache lookup.
     private static CraftingResult OptimizeResult(CraftingState craftingState, GlobalState globalState)
     {
+        craftingState.progress = MathUtil.Clamp(craftingState.progress, 0, globalState.totalProgress);
+        craftingState.quality = MathUtil.Clamp(craftingState.quality, 0, globalState.totalQuality);
+
         if (!globalState.cache.ContainsKey(craftingState))
         {
             globalState.cache[craftingState] = OptimizeResultImmediate(craftingState, globalState);
+
+            if (globalState.cache.Count % 100000 == 0)
+            {
+                Dbg.Inf($"{globalState.cache.Count} entries generated");
+            }
         }
 
         return globalState.cache[craftingState];

@@ -137,3 +137,18 @@ public class EffectInnerQuiet : Effect
         return input;
     }
 }
+
+public class EffectGreatStrides : Effect
+{
+    public override CraftingCalculator.CraftingState Apply(CraftingCalculator.CraftingState input, CraftingCalculator.GlobalState global, bool success)
+    {
+        input.Tick(durabilityCost: 0);
+
+        if (success)
+        {
+            input.greatStrides = 3;
+        }
+
+        return input;
+    }
+}
