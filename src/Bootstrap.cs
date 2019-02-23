@@ -19,6 +19,12 @@ public static class Bootstrap
         public int xp;
     }
 
+    public enum SortMethod
+    {
+        Order,
+        Profit,
+    }
+
     public static void Main(string[] args)
     {
         Cache.Init();
@@ -35,9 +41,10 @@ public static class Bootstrap
         }
 
         //DoGCScripAnalysis();
-        //DoRecipeAnalysis("weaver", 1, 63, 57);
+        //DoRecipeAnalysis("weaver", 1, 57, 63, SortMethod.Profit);
+        DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
-        CraftingCalculator.Process();
+        //CraftingCalculator.Process();
         /*
         DoCollectibleCombinationMath(new CollectibleCombination[] {
             new CollectibleCombination() { item = "Chimerical Felt Hose of Aiming", xp = 279936 },
@@ -116,7 +123,7 @@ public static class Bootstrap
         return new Tuple<float, string>(profitTimeAdjusted, readable);
     }
 
-    public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax)
+    public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax, SortMethod sortMethod)
     {
         var results = new List<Tuple<float, string>>();
 
@@ -136,7 +143,7 @@ public static class Bootstrap
             int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
 
             // we gotta do more, man
-            if (recipe.ClassJob.Name != classid || classLevel < levelmin || classLevel >= levelmax)
+            if (recipe.ClassJob.Name != classid || classLevel < levelmin || classLevel > levelmax)
             {
                 continue;
             }
@@ -161,10 +168,21 @@ public static class Bootstrap
             evaluator[i]();
         }
 
-        foreach (var result in results.OrderBy(result => result.Item1))
+        if (sortMethod == SortMethod.Order)
         {
-            Dbg.Inf(result.Item2);
+            foreach (var result in results)
+            {
+                Dbg.Inf(result.Item2);
+            }
         }
+        else if (sortMethod == SortMethod.Profit)
+        {
+            foreach (var result in results.OrderBy(result => result.Item1))
+            {
+                Dbg.Inf(result.Item2);
+            }
+        }
+        
     }
 
     public static void DoCollectibleCombinationMath(CollectibleCombination[] combos)
