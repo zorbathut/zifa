@@ -63,7 +63,7 @@ public static class CraftingCalculator
         Distribute,  // "Came from Normal, do the fancy split thing"
     }
 
-    public struct CraftingState
+    public struct CraftingState : IEquatable<CraftingState>
     {
         public int progress;
         public int quality;
@@ -91,6 +91,41 @@ public static class CraftingCalculator
         public int SuccessBonus()
         {
             return steadyHand > 0 ? 20 : 0;
+        }
+
+        public override bool Equals(Object obj) 
+        {
+            return obj is CraftingState && this == (CraftingState)obj;
+        }
+        bool IEquatable<CraftingState>.Equals(CraftingState obj) 
+        {
+            return this == obj;
+        }
+        public override int GetHashCode() 
+        {
+            return progress.GetHashCode() ^
+                quality.GetHashCode() ^
+                durability.GetHashCode() ^
+                condition.GetHashCode() ^
+                cp.GetHashCode() ^
+                innerQuiet.GetHashCode() ^
+                steadyHand.GetHashCode() ^
+                greatStrides.GetHashCode();
+        }
+        public static bool operator==(CraftingState lhs, CraftingState rhs) 
+        {
+            return lhs.progress == rhs.progress &&
+                lhs.quality == rhs.quality &&
+                lhs.durability == rhs.durability &&
+                lhs.condition == rhs.condition &&
+                lhs.cp == rhs.cp &&
+                lhs.innerQuiet == rhs.innerQuiet &&
+                lhs.steadyHand == rhs.steadyHand &&
+                lhs.greatStrides == rhs.greatStrides;
+        }
+        public static bool operator!=(CraftingState lhs, CraftingState rhs) 
+        {
+            return !(lhs == rhs);
         }
     }
 
