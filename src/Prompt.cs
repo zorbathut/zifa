@@ -33,8 +33,23 @@ public static class Prompt
             else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
             {
                 int amount = int.Parse(vmatch.Groups["amount"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).First());
-                var item = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).First();
-                DoPurchasableAnalysis(item.Key, amount);
+                var items = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
+                if (items.Length == 0)
+                {
+                    Dbg.Inf("can't find :(");
+                }
+                else if (items.Length > 1)
+                {
+                    Dbg.Inf("Too many!");
+                    foreach (var item in items)
+                    {
+                        Dbg.Inf($"  {item.Name}");
+                    }
+                }
+                else
+                {
+                    DoPurchasableAnalysis(items[0].Key, amount);
+                }
             }
             else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
             {

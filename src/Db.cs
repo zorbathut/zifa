@@ -59,13 +59,26 @@ public static class Db
     {
         foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
         {
+            string iname = item.Name.ToString();
+
             bool good = true;
             foreach (var token in tokens)
             {
-                if (item.Name.ToString().IndexOf(token, StringComparison.CurrentCultureIgnoreCase) == -1)
+                if (token[0] == '-')
                 {
-                    good = false;
-                    break;
+                    if (iname.IndexOf(token.Substring(1), StringComparison.CurrentCultureIgnoreCase) != -1)
+                    {
+                        good = false;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (iname.IndexOf(token, StringComparison.CurrentCultureIgnoreCase) == -1)
+                    {
+                        good = false;
+                        break;
+                    }
                 }
             }
 
