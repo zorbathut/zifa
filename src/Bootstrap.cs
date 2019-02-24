@@ -42,7 +42,7 @@ public static class Bootstrap
 
         //DoGCScripAnalysis();
         //DoRecipeAnalysis("weaver", 1, 57, 63, SortMethod.Profit);
-        DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
+        //DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
         /*
@@ -84,7 +84,7 @@ public static class Bootstrap
             {
                 inspected.Add(id);
 
-                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false) / scripEntry.GCSealsCost, id, 40000 / scripEntry.GCSealsCost);
+                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false, Market.Latency.Standard) / scripEntry.GCSealsCost, id, 40000 / scripEntry.GCSealsCost, Market.Latency.Standard);
 
                 results.Add(new Result() { gps = gps, name = item.Name });
             }
@@ -100,12 +100,12 @@ public static class Bootstrap
 
     public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, SaintCoinach.Xiv.Item result, bool hq)
     {
-        float expectedRevenue = Commerce.ValueSell(result.Key, hq);
-        string readable = $"{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq):F0}";
+        float expectedRevenue = Commerce.ValueSell(result.Key, hq, Market.Latency.Standard);
+        string readable = $"{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, Market.Latency.Standard):F0}";
         float tcost = 0;
         foreach (var ingredient in recipe.Ingredients)
         {
-            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, out string source);
+            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out string source);
             readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
             tcost += ingredient.Count * cost;
@@ -115,7 +115,7 @@ public static class Bootstrap
 
         // Adjust profit
         // HQing things is hard, assume we're willing to sell at most ten per day
-        float profitTimeAdjusted = profit * Math.Min(Commerce.MarketSalesPerDay(result.Key), Math.Min(result.StackSize, hq ? 10 : 99));
+        float profitTimeAdjusted = profit * Math.Min(Commerce.MarketSalesPerDay(result.Key, Market.Latency.Standard), Math.Min(result.StackSize, hq ? 10 : 99));
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
         readable += "\n";
@@ -195,7 +195,7 @@ public static class Bootstrap
             float tcost = 0;
             foreach (var ingredient in recipe.Ingredients)
             {
-                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, out string source);
+                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out string source);
                 readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
                 tcost += ingredient.Count * cost;

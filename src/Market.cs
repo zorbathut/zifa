@@ -6,6 +6,12 @@ using System.Linq;
 
 public static class Market
 {
+    public enum Latency
+    {
+        Standard,
+        Immediate,
+    }
+
     private static TimeSpan AuctionInvalidationDuration(int id)
     {
         string key = $"/market/midgardsormr/items/{id}/history";
@@ -41,13 +47,13 @@ public static class Market
         return invalidationTime;
     }
 
-    public static JObject History(int id)
+    public static JObject History(int id, Latency latency)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", invalidation: AuctionInvalidationDuration(id));
+        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", invalidation: latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
     }
 
-    public static JObject Prices(int id)
+    public static JObject Prices(int id, Latency latency)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}", invalidation: AuctionInvalidationDuration(id));
+        return Api.Retrieve($"/market/midgardsormr/items/{id}", invalidation: latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
     }
 }

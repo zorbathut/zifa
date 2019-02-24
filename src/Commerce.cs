@@ -13,7 +13,7 @@ public static class Commerce
         Fastsell,
     }
 
-    public static float ValueMarket(int id, bool hq, TransactionType type)
+    public static float ValueMarket(int id, bool hq, TransactionType type, Market.Latency latency)
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
@@ -28,7 +28,7 @@ public static class Commerce
 
         if (type == TransactionType.Longterm)
         {
-            var results = Market.History(id);
+            var results = Market.History(id, latency);
 
             var history = results["History"].OfType<JObject>();
 
@@ -40,7 +40,7 @@ public static class Commerce
         }
         else if (type == TransactionType.Immediate)
         {
-            var results = Market.Prices(id);
+            var results = Market.Prices(id, latency);
 
             var prices = results["Prices"].OfType<JObject>();
 
@@ -50,7 +50,7 @@ public static class Commerce
         }
         else if (type == TransactionType.Fastsell)
         {
-            var resulthistory = Market.History(id);
+            var resulthistory = Market.History(id, latency);
 
             var history = resulthistory["History"].OfType<JObject>();
 
@@ -60,7 +60,7 @@ public static class Commerce
             float hhqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
             float hunfiltered = history.Select(builder).Median();
 
-            var resultprices = Market.Prices(id);
+            var resultprices = Market.Prices(id, latency);
 
             var prices = resultprices["Prices"].OfType<JObject>();
 
@@ -97,7 +97,7 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
-    public static float MarketSalesPerDay(int id)
+    public static float MarketSalesPerDay(int id, Market.Latency latency)
     {
         // just get this out of the way first; it's a much much cheaper query
         var itemdb = Db.Item(id);
@@ -106,7 +106,7 @@ public static class Commerce
             return float.NaN;
         }
 
-        var results = Market.History(id);
+        var results = Market.History(id, latency);
 
         var history = results["History"].OfType<JObject>();
         if (!history.Any())
@@ -132,21 +132,21 @@ public static class Commerce
         return (float)totalQuantity / span * 60 * 60 * 24;
     }
 
-    public static float MarketProfitAdjuster(float profit, int id, float acquired)
+    public static float MarketProfitAdjuster(float profit, int id, float acquired, Market.Latency latency)
     {
         if (profit < 0)
         {
             return profit;
         }
 
-        float salesPerDay = MarketSalesPerDay(id);
+        float salesPerDay = MarketSalesPerDay(id, latency);
 
         float daysToSell = acquired / salesPerDay;
 
         return profit / Math.Max(daysToSell, 1);
     }
 
-    public static float ValueSell(int id, bool hq, out string destination)
+    public static float ValueSell(int id, bool hq, Market.Latency latency, out string destination)
     {
         var item = Db.Item(id);
 
@@ -159,7 +159,7 @@ public static class Commerce
         }
         destination = "vendor";
 
-        float market = ValueMarket(id, hq, Commerce.TransactionType.Fastsell) * 0.95f;
+        float market = ValueMarket(id, hq, Commerce.TransactionType.Fastsell, latency) * 0.95f;
         if (market > 0 && market > bestprice)
         {
             bestprice = market;
@@ -169,22 +169,22 @@ public static class Commerce
         return bestprice;
     }
 
-    public static float ValueSell(int id, bool hq)
+    public static float ValueSell(int id, bool hq, Market.Latency latency)
     {
         string _;
-        return ValueSell(id, hq, out _);
+        return ValueSell(id, hq, latency, out _);
     }
 
-    public static float ValueBuy(int id, bool hq, TransactionType type, out string source)
+    public static float ValueBuy(int id, bool hq, TransactionType type, Market.Latency latency, out string source)
     {
         // can't buy HQ stuff from vendors
         if (hq)
         {
             source = "market";
-            return ValueMarket(id, hq, type) * 1.05f;
+            return ValueMarket(id, hq, type, latency) * 1.05f;
         }
 
-        float bestprice = ValueMarket(id, hq, type) * 1.05f;
+        float bestprice = ValueMarket(id, hq, type, latency) * 1.05f;
         source = "market";
 
         var item = Db.Item(id);
@@ -204,10 +204,10 @@ public static class Commerce
         return bestprice;
     }
 
-    public static float ValueBuy(int id, bool hq, TransactionType type)
+    public static float ValueBuy(int id, bool hq, TransactionType type, Market.Latency latency)
     {
         string _;
-        return ValueBuy(id, hq, type, out _);
+        return ValueBuy(id, hq, type, latency, out _);
     }
 
     private static HashSet<int> marketablesCache;
