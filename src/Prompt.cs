@@ -36,7 +36,7 @@ public static class Prompt
             {
                 int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
                 int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                for (int i = 5; i <= Math.Min(gather, mine); i += 5)
+                for (int i = 5; i <= Math.Max(gather, mine); i += 5)
                 {
                     GatherbestCalculator(Math.Min(gather, i), Math.Min(mine, i));
                     Dbg.Inf($"THAT'S IT UP TO {i}");
