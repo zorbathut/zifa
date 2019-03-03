@@ -189,7 +189,8 @@ public static class Bootstrap
 
             var goodRecipes = new List<RecipeData>();
 
-            while (recipeInfo.Count > 0 && (goodRecipes.Count < 20 || goodRecipes[0].estimate < recipeInfo[recipeInfo.Count - 1].estimate))
+            int desiredCount = 20;
+            while (recipeInfo.Count > 0 && (goodRecipes.Count < desiredCount || goodRecipes[goodRecipes.Count - desiredCount].estimate < recipeInfo[recipeInfo.Count - 1].estimate))
             {
                 Dbg.Inf($"Immediate-testing; at {goodRecipes.Count} recipes");
 
