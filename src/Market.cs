@@ -49,11 +49,17 @@ public static class Market
 
     public static JObject History(int id, Latency latency)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", invalidation: latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
+        DateTimeOffset _;
+        return History(id, latency, out _);
+    }
+
+    public static JObject History(int id, Latency latency, out DateTimeOffset retrievalTime)
+    {
+        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1), out retrievalTime);
     }
 
     public static JObject Prices(int id, Latency latency)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}", invalidation: latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
+        return Api.Retrieve($"/market/midgardsormr/items/{id}", latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
     }
 }

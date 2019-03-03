@@ -14,8 +14,9 @@ public static class Cache
         DbConnection.ExecuteNonQuery("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, time INTEGER NOT NULL, value TEXT NOT NULL)");
     }
 
-    public static string GetCacheEntry(string key, TimeSpan invalidation)
+    public static string GetCacheEntry(string key, TimeSpan invalidation, out DateTimeOffset retrievalTime)
     {
+        retrievalTime = DateTimeOffset.MinValue;
         if (invalidation.TotalSeconds <= 0)
         {
             // no cache allowed
@@ -43,7 +44,14 @@ public static class Cache
         }
 
         // We're good, return the cache!
+        retrievalTime = cachetimestamp;
         return reader.GetField<string>("value");
+    }
+
+    public static string GetCacheEntry(string key, TimeSpan invalidation)
+    {
+        DateTimeOffset _;
+        return GetCacheEntry(key, invalidation, out _);
     }
 
     public static void StoreCacheEntry(string key, string value)

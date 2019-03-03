@@ -45,8 +45,9 @@ public static class Api
     }
 
     private static long NextQuery = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-    public static JObject Retrieve(string path, TimeSpan invalidation, Dictionary<string, string> parameters = null)
+    public static JObject Retrieve(string path, TimeSpan invalidation, out DateTimeOffset retrievalTime, Dictionary<string, string> parameters = null)
     {
+        retrievalTime = DateTimeOffset.MinValue;
         if (parameters == null)
         {
             parameters = new Dictionary<string, string>();
@@ -65,7 +66,7 @@ public static class Api
         string paramstr = paramlist.Select(kvp => $"{kvp.Key}={kvp.Value}").Aggregate((lhs, rhs) => $"{lhs}&{rhs}");
         string urlbody = $"{path}?{paramstr}";
 
-        string result = Cache.GetCacheEntry(urlbody, invalidation: invalidation);
+        string result = Cache.GetCacheEntry(urlbody, invalidation, out retrievalTime);
         if (result == null)
         {
             // Avoid the ten-query-per-second limit
@@ -82,5 +83,11 @@ public static class Api
         }
 
         return JObject.Parse(result);
+    }
+
+    public static JObject Retrieve(string path, TimeSpan invalidation, Dictionary<string, string> parameters = null)
+    {
+        DateTimeOffset _;
+        return Retrieve(path, invalidation, out _, parameters);
     }
 }

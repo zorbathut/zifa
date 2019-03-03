@@ -106,7 +106,8 @@ public static class Commerce
             return float.NaN;
         }
 
-        var results = Market.History(id, latency);
+        DateTimeOffset retrievalTime;
+        var results = Market.History(id, latency, out retrievalTime);
 
         var history = results["History"].OfType<JObject>();
         if (!history.Any())
@@ -115,19 +116,10 @@ public static class Commerce
             return float.NaN;
         }
 
-        // due to caching, we may not have up-to-date results, so we pretend we polled on the first item to get useful stats
-        long firstDate = history.First()["PurchaseDate"].Value<long>();
         long lastDate = history.Last()["PurchaseDate"].Value<long>();
-        if (firstDate == lastDate)
-        {
-            // this isn't ideal, but okay
-            firstDate = DateTimeOffset.Now.ToUnixTimeSeconds();
-        }
+        long span = retrievalTime.ToUnixTimeSeconds() - lastDate;
 
-        long span = firstDate - lastDate;
-
-        // skip the first so we're not biasing very positive
-        int totalQuantity = history.Skip(1).Sum(item => item["Quantity"].Value<int>());
+        int totalQuantity = history.Sum(item => item["Quantity"].Value<int>());
 
         return (float)totalQuantity / span * 60 * 60 * 24;
     }
