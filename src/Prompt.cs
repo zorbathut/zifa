@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 public static class Prompt
 {
     private static Regex PointRegex = new Regex("^gpoint( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex GatherRegex = new Regex("^gatherbest (?<gather>[0-9]+) (?<mine>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex ValueRegex = new Regex("^vendornet (?<amount>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -20,6 +21,7 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf("Options:");
             Dbg.Inf("  gpoint wind coin");
+            Dbg.Inf("  gatherbest 70 70");
             Dbg.Inf("  vendornet 2000 tomestone poetic");
             Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("  rewards nickel turban high steel fending");
@@ -29,6 +31,17 @@ public static class Prompt
             if (PointRegex.Match(instr) is var pmatch && pmatch.Success)
             {
                 GatherpointCalculator(pmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+            }
+            else if (GatherRegex.Match(instr) is var gmatch && gmatch.Success)
+            {
+                int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                for (int i = 5; i <= Math.Min(gather, mine); i += 5)
+                {
+                    GatherbestCalculator(Math.Min(gather, i), Math.Min(mine, i));
+                    Dbg.Inf($"THAT'S IT UP TO {i}");
+                }
+                
             }
             else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
             {
@@ -183,6 +196,62 @@ public static class Prompt
         foreach (var item in items.Select(id => Tuple.Create(Db.Item(id), Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false, Market.Latency.Standard), id, 30, Market.Latency.Standard))).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
+        }
+    }
+
+    public static void GatherbestCalculator(int gather, int mine)
+    {
+        var prospective = new HashSet<SaintCoinach.Xiv.GatheringPointBase>();
+        foreach (var point in Db.GetSheet<SaintCoinach.Xiv.GatheringPoint>())
+        {
+            if (point.TerritoryType != null)
+            {
+                prospective.Add(point.Base);
+            }
+        }
+
+        var seen = new HashSet<int>();
+        seen.Add(0); // yes yes it's a hack
+        var results = new List<Tuple<float, string>>();
+        foreach (var point in prospective)
+        {
+            string pointtype = point.Type.Name;
+            bool valid = false;
+            if ((pointtype == "Mining" || pointtype == "Quarrying") && point.GatheringLevel <= gather) valid = true;
+            if ((pointtype == "Harvesting" || pointtype == "Logging") && point.GatheringLevel <= mine) valid = true;
+
+            if (!valid)
+            {
+                continue;
+            }
+
+            foreach (var gitem in point.Items)
+            {
+                if (seen.Contains(gitem.Item.Key))
+                {
+                    continue;
+                }
+                seen.Add(gitem.Item.Key);
+
+                if (gitem.Item is SaintCoinach.Xiv.Item item)
+                {
+                    if (item.IsUntradable)
+                    {
+                        continue;
+                    }
+
+                    float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item.Key, false, Market.Latency.Standard), item.Key, point.IsLimited ? 10 : 99, Market.Latency.Standard);
+                    string usp = point.IsLimited ? "USP" : "   ";
+                    results.Add(Tuple.Create(value, $"{usp} {value}: {item.Name}"));
+                }
+                
+            }
+        }
+
+        Dbg.Inf($"{results.Count} matches");
+        foreach (var item in results.OrderBy(tup => tup.Item1))
+        {
+            Dbg.Inf(item.Item2);
         }
     }
 
