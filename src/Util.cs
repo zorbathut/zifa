@@ -11,10 +11,23 @@ public static class Util
     public static string GetURLContents(string url)
     {
         var request = WebRequest.Create(url);
-        var response = request.GetResponse();
-        var stream = response.GetResponseStream();
-        var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
+
+        while (true)
+        {
+            try
+            {
+                var response = request.GetResponse();
+                var stream = response.GetResponseStream();
+                var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+            catch(WebException ex)
+            {
+                Dbg.Ex(ex);
+                Dbg.Inf("Waiting 30s . . .");
+                System.Threading.Thread.Sleep(30000);
+            }
+        }
     }
 
     public static void Sort<T>(this ICollection<T> collection, Func<T, T, bool> comparator)
