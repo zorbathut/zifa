@@ -98,8 +98,9 @@ public static class Bootstrap
         }
     }
 
-    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, SaintCoinach.Xiv.Item result, bool hq, Market.Latency latency)
+    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, Market.Latency latency)
     {
+        var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency);
         string readable = $"{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
         float tcost = 0;
@@ -160,10 +161,10 @@ public static class Bootstrap
 
             if (classLevel <= hqcutoff && result.CanBeHq)
             {
-                evaluators.Add(latency => EvaluateItem(recipe, result, true, latency));
+                evaluators.Add(latency => EvaluateItem(recipe, true, latency));
             }
 
-            evaluators.Add(latency => EvaluateItem(recipe, result, false, latency));
+            evaluators.Add(latency => EvaluateItem(recipe, false, latency));
         }
 
         if (sortMethod == SortMethod.Order)
