@@ -269,6 +269,17 @@ public static class Prompt
             Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, item.StackSize, Market.Latency.Immediate)}");
+
+            foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
+            {
+                if (recipe.ResultItem == item)
+                {
+                    Dbg.Inf("");
+                    Dbg.Inf(Bootstrap.EvaluateItem(recipe, false, Market.Latency.Immediate).Item2);
+                }
+            }
+
+            Dbg.Inf("");
         }
     }
 
