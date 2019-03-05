@@ -168,9 +168,10 @@ public static class Bootstrap
 
         if (sortMethod == SortMethod.Order)
         {
-            foreach (var item in evaluators)
+            // ToArray forces it to be evaluated before printing so we don't interlace with debug output
+            foreach (var output in evaluators.Select(item =>  item(Market.Latency.Standard).Item2).ToArray())
             {
-                Dbg.Inf(item(Market.Latency.Standard).Item2);
+                Dbg.Inf(output);
             }
         }
         else if (sortMethod == SortMethod.Profit)
