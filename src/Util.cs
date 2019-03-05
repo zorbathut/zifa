@@ -10,22 +10,30 @@ public static class Util
 {
     public static string GetURLContents(string url)
     {
-        var request = WebRequest.Create(url);
-
         while (true)
         {
             try
             {
+                var request = WebRequest.Create(url);
                 var response = request.GetResponse();
                 var stream = response.GetResponseStream();
                 var reader = new StreamReader(stream);
                 return reader.ReadToEnd();
             }
-            catch(WebException ex)
+            catch (WebException ex)
             {
                 Dbg.Ex(ex);
-                Dbg.Inf("Waiting 30s . . .");
-                System.Threading.Thread.Sleep(30000);
+
+                WebResponse errResp = ex.Response;
+                using (Stream respStream = errResp.GetResponseStream())
+                {
+                    var reader = new StreamReader(respStream);
+                    Dbg.Err(reader.ReadToEnd());
+                }
+
+                const int waitTime = 5;
+                Dbg.Inf($"Waiting {waitTime}s . . .");
+                System.Threading.Thread.Sleep(waitTime * 1000);
             }
         }
     }
