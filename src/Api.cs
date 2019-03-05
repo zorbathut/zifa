@@ -77,7 +77,7 @@ public static class Api
             NextQuery += 120;
 
             string url = Prefix + urlbody;
-            Dbg.Inf($"Querying {url}");
+            //Dbg.Inf($"Querying {url}");
             result = Util.GetURLContents(url);
             Cache.StoreCacheEntry(urlbody, result);
         }
