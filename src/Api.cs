@@ -11,7 +11,7 @@ public static class Api
     private static string Key;
     private static Dictionary<string, string> KeyDict;
 
-    private const string Prefix = "https://xivapi.com";
+    private const string Prefix = "https://staging.xivapi.com";
 
     public static void Init()
     {
@@ -57,7 +57,7 @@ public static class Api
 
         IEnumerable<KeyValuePair<string, string>> paramlist = parameters;
 
-        paramlist = paramlist.Concat(new KeyValuePair<string, string>("key", Key));
+        paramlist = paramlist.Concat(new KeyValuePair<string, string>("private_key", Key));
         if (categoryInfo.columns != null && categoryInfo.columns != "")
         {
             paramlist = paramlist.Concat(new KeyValuePair<string, string>("columns", categoryInfo.columns));

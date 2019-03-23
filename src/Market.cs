@@ -10,12 +10,12 @@ public static class Market
     {
         Standard,
         Immediate,
+        CacheOnly,
     }
 
     private static TimeSpan AuctionInvalidationDuration(int id)
     {
-        string key = $"/market/midgardsormr/items/{id}/history";
-        var cached = Api.Retrieve(key, invalidation: TimeSpan.MaxValue);
+        var cached = History(id, Latency.CacheOnly, out DateTimeOffset retrievalTime);
 
         TimeSpan invalidationTime;
         if (cached != null)
@@ -40,10 +40,6 @@ public static class Market
             invalidationTime = TimeSpan.Zero;
         }
 
-        // poke the history with the new invalidation time, just to properly cache the data we're using to generate this data
-
-        Api.Retrieve(key, invalidation: invalidationTime);
-
         return invalidationTime;
     }
 
@@ -53,13 +49,43 @@ public static class Market
         return History(id, latency, out _);
     }
 
+    private static TimeSpan GetCacheTime(int id, Latency latency)
+    {
+        if (latency == Latency.Standard)
+        {
+            return AuctionInvalidationDuration(id);
+        }
+        else if (latency == Latency.Immediate)
+        {
+            return TimeSpan.FromHours(1);
+        }
+        else if (latency == Latency.CacheOnly)
+        {
+            return TimeSpan.MaxValue;
+        }
+
+        Dbg.Err("what's going on with a bad latency?");
+        return GetCacheTime(id, Latency.Standard);
+    }
+
     public static JObject History(int id, Latency latency, out DateTimeOffset retrievalTime)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}/history", latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1), out retrievalTime);
+        var apiresult = Api.Retrieve(
+                $"/market/item/{id}",
+                GetCacheTime(id, latency),
+                out retrievalTime,
+                new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
+            )["Midgardsormr"];
+        retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
+        return apiresult as JObject;
     }
 
     public static JObject Prices(int id, Latency latency)
     {
-        return Api.Retrieve($"/market/midgardsormr/items/{id}", latency == Latency.Standard ? AuctionInvalidationDuration(id) : TimeSpan.FromHours(1));
+        return Api.Retrieve(
+                $"/market/item/{id}",
+                GetCacheTime(id, latency),
+                new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
+            )["Midgardsormr"] as JObject;
     }
 }
