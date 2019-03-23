@@ -124,6 +124,11 @@ public static class Util
         
         return def;
     }
+
+    public static bool IsMarketable(this SaintCoinach.Xiv.Item item)
+    {
+        return item.ItemSearchCategory.Category != 0;
+    }
 }
 
 public static class EnumUtil

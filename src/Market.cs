@@ -70,6 +70,12 @@ public static class Market
 
     public static JObject History(int id, Latency latency, out DateTimeOffset retrievalTime)
     {
+        if (!Db.Item(id).IsMarketable())
+        {
+            retrievalTime = DateTimeOffset.Now;
+            return null;
+        }
+
         var apiresult = Api.Retrieve(
                 $"/market/item/{id}",
                 GetCacheTime(id, latency),
@@ -77,20 +83,18 @@ public static class Market
                 new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
             )["Midgardsormr"];
 
-        if (apiresult["Updated"].Type != JTokenType.Null)
-        {
-            retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
-        }
-        else
-        {
-            retrievalTime = DateTimeOffset.Now;
-        }
+        retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
         
         return apiresult as JObject;
     }
 
     public static JObject Prices(int id, Latency latency)
     {
+        if (!Db.Item(id).IsMarketable())
+        {
+            return null;
+        }
+
         return Api.Retrieve(
                 $"/market/item/{id}",
                 GetCacheTime(id, latency),
