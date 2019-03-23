@@ -67,6 +67,7 @@ public static class Api
         string urlbody = $"{path}?{paramstr}";
 
         string result = Cache.GetCacheEntry(urlbody, invalidation, out retrievalTime);
+        const int RequestDelay = 80;
         if (result == null)
         {
             // Avoid the ten-query-per-second limit
@@ -74,7 +75,7 @@ public static class Api
             {
                 Thread.Sleep(0);
             }
-            NextQuery += 120;
+            NextQuery = Math.Max(NextQuery + RequestDelay, DateTimeOffset.Now.ToUnixTimeMilliseconds() - RequestDelay * 2);
 
             string url = Prefix + urlbody;
             //Dbg.Inf($"Querying {url}");
