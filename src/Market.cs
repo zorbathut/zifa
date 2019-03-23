@@ -76,7 +76,16 @@ public static class Market
                 out retrievalTime,
                 new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
             )["Midgardsormr"];
-        retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
+
+        if (apiresult["Updated"].Type != JTokenType.Null)
+        {
+            retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
+        }
+        else
+        {
+            retrievalTime = DateTimeOffset.Now;
+        }
+        
         return apiresult as JObject;
     }
 

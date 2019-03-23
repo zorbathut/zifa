@@ -144,11 +144,6 @@ public static class Bootstrap
                 continue;
             }
 
-            if (result.IsCollectable)
-            {
-                continue;
-            }
-
             string className = recipe.ClassJob.Name;
             int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
 
