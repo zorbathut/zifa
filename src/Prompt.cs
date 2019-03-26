@@ -132,8 +132,7 @@ public static class Prompt
                 string name = reward.Item.Name;
                 var label = $"{name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
 
-                // I DON'T TRUST THIS RIGHT NOW
-                if (reward.Item.IsUntradable)
+                if (!reward.Item.IsMarketable())
                 {
                     foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key, amountAcquired / cost * reward.Count))
                     {
