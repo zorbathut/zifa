@@ -116,11 +116,12 @@ public static class Bootstrap
         }
     }
 
+    readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
     public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, Market.Latency latency)
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency);
-        string readable = $"{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
+        string readable = $"\n{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
         float tcost = 0;
         foreach (var ingredient in recipe.Ingredients)
         {
@@ -137,7 +138,11 @@ public static class Bootstrap
         float profitTimeAdjusted = profit * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, hq ? 10 : 99));
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
-        readable += "\n";
+
+        if (latency == Market.Latency.Immediate && Market.IsSelling(result.Key, People))
+        {
+            readable = readable.Replace("\n", "    \n");
+        }
 
         return new Tuple<float, string>(profitTimeAdjusted, readable);
     }
