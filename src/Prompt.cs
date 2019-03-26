@@ -10,6 +10,7 @@ public static class Prompt
     private static Regex PointRegex = new Regex("^gpoint( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherRegex = new Regex("^gatherbest (?<gather>[0-9]+) (?<mine>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex ValueRegex = new Regex("^vendornet (?<amount>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex AcquireRegex = new Regex("^acquirenet( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
@@ -23,6 +24,7 @@ public static class Prompt
             Dbg.Inf("  gpoint wind coin");
             Dbg.Inf("  gatherbest 70 70");
             Dbg.Inf("  vendornet 2000 tomestone poetic");
+            Dbg.Inf("  acquirenet rakshasa token");
             Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("  rewards nickel turban high steel fending");
             Dbg.Inf("");
@@ -62,6 +64,26 @@ public static class Prompt
                 else
                 {
                     DoPurchasableAnalysis(items[0].Key, amount);
+                }
+            }
+            else if (AcquireRegex.Match(instr) is var qmatch && qmatch.Success)
+            {
+                var items = Db.ItemLoose(qmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
+                if (items.Length == 0)
+                {
+                    Dbg.Inf("can't find :(");
+                }
+                else if (items.Length > 1)
+                {
+                    Dbg.Inf("Too many!");
+                    foreach (var item in items)
+                    {
+                        Dbg.Inf($"  {item.Name}");
+                    }
+                }
+                else
+                {
+                    DoAcquireableAnalysis(items[0].Key, 1);
                 }
             }
             else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
@@ -144,6 +166,68 @@ public static class Prompt
                     float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, Market.Latency.Standard) * reward.Count;
                     float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, Market.Latency.Standard);
                     yield return new Bootstrap.Result() { gps = valueAdjusted / cost, name = label };
+                }
+            }
+        }
+    }
+
+    public static void DoAcquireableAnalysis(int itemId, int amount)
+    {
+        foreach (var result in AcquireableAnalysisWorker(itemId, amount).OrderByDescending(item => item.gps))
+        {
+            Dbg.Inf($"{result.gps:F2}: {result.name}");
+        }
+    }
+
+    public static IEnumerable<Bootstrap.Result> AcquireableAnalysisWorker(int itemId, float amountNeeded)
+    {
+        var inspected = new HashSet<int>();
+        foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
+        {
+            foreach (var listing in shop.Items)
+            {
+                int reward = 0;
+                foreach (var rewardElement in listing.Rewards)
+                {
+                    if (rewardElement.Item?.Key == itemId)
+                    {
+                        reward = rewardElement.Count;
+                    }
+                }
+
+                if (reward <= 0)
+                {
+                    continue;
+                }
+
+                if (listing.Costs.Count() > 1)
+                {
+                    yield return new Bootstrap.Result() { gps = 0, name = "TOO MANY RESULTS" };
+                    continue;
+                }
+
+                var cost = listing.Costs.First();
+
+                if (cost.Item.Key == 0)
+                {
+                    continue;
+                }
+
+                string name = cost.Item.Name;
+                var label = $"{name}{(cost.Count > 1 ? $" x{cost.Count}" : "")}{(cost.IsHq ? " HQ" : "")}";
+
+                if (!cost.Item.IsMarketable())
+                {
+                    foreach (var elem in AcquireableAnalysisWorker(cost.Item.Key, amountNeeded / reward * cost.Count))
+                    {
+                        yield return new Bootstrap.Result() { gps = elem.gps / reward * cost.Count, name = $"{label} -> {elem.name}" };
+                    }
+                }
+                else
+                {
+                    float valueBase = Commerce.ValueSell(cost.Item.Key, cost.IsHq, Market.Latency.Standard) * cost.Count;
+                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, cost.Item.Key, amountNeeded / reward * cost.Count, Market.Latency.Standard);
+                    yield return new Bootstrap.Result() { gps = valueAdjusted / reward, name = label };
                 }
             }
         }
