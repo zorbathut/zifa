@@ -101,4 +101,20 @@ public static class Market
                 new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
             )["Midgardsormr"] as JObject;
     }
+
+    public static bool IsSelling(int id, string[] people)
+    {
+        var prices = Prices(id, Latency.Immediate);
+
+        foreach (var price in prices["Prices"].OfType<JObject>())
+        {
+            string poster = price["RetainerName"].Value<string>();
+            if (people.Contains(poster))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
