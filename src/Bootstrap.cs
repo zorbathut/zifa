@@ -25,6 +25,14 @@ public static class Bootstrap
         Profit,
     }
 
+    public struct CraftingInfo
+    {
+        public string name;
+        public int minlevel;
+        public int maxhqlevel;
+        public int maxlevel;
+    }
+
     public static void Main(string[] args)
     {
         Cache.Init();
@@ -41,7 +49,17 @@ public static class Bootstrap
         }
 
         //DoGCScripAnalysis();
-        //DoRecipeAnalysis("weaver", 1, 57, 63, SortMethod.Profit);
+        if (true)
+            DoRecipeAnalysis(new CraftingInfo[] {
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 15, maxlevel = 18 },
+                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21 },
+                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19 },
+                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21 },
+                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 19, maxlevel = 22 },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 60, maxlevel = 65 },
+                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 15, maxlevel = 18 },
+                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 16, maxlevel = 19 },
+            }, SortMethod.Profit);
         //DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
@@ -130,7 +148,7 @@ public static class Bootstrap
         public float estimate;
     }
 
-    public static void DoRecipeAnalysis(string classid, int levelmin, int hqcutoff, int levelmax, SortMethod sortMethod)
+    public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod)
     {
         var evaluators = new List<Func<Market.Latency, Tuple<float, string>>>();
 
@@ -148,23 +166,40 @@ public static class Bootstrap
             {
                 continue;
             }
-
-            string className = recipe.ClassJob.Name;
-            int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
-
-            // we gotta do more, man
-            if (recipe.ClassJob.Name != classid || classLevel < levelmin || classLevel > levelmax)
-            {
-                continue;
-            }
-
+            
             // filter out ixal
             if (recipe.RequiredItem.Key != 0)
             {
                 continue;
             }
 
-            if (classLevel <= hqcutoff && result.CanBeHq)
+            string className = recipe.ClassJob.Name;
+            int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
+
+            bool canHq = false;
+
+            {
+                // validate availability and see if we're allowed to try HQ'ing it
+                bool validated = false;
+                foreach (var crafttype in craftingInfo)
+                {
+                    if (recipe.ClassJob.Name == crafttype.name && classLevel >= crafttype.minlevel && classLevel <= crafttype.maxlevel)
+                    {
+                        validated = true;
+                        if (classLevel <= crafttype.maxhqlevel)
+                        {
+                            canHq = true;
+                        }
+                    }
+                }
+
+                if (!validated)
+                {
+                    continue;
+                }
+            }
+
+            if (canHq && result.CanBeHq)
             {
                 evaluators.Add(latency => EvaluateItem(recipe, true, latency));
             }
