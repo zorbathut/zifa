@@ -207,8 +207,14 @@ public static class Commerce
         return ValueBuy(id, hq, type, latency, out _);
     }
 
-    private static HashSet<int> marketablesCache;
+    
     public static bool CanBuyFromMarket(int id)
+    {
+        return Marketables().Contains(id);
+    }
+
+    private static HashSet<int> marketablesCache;
+    public static HashSet<int> Marketables()
     {
         if (marketablesCache == null)
         {
@@ -222,6 +228,6 @@ public static class Commerce
             Dbg.Inf("Generated marketables cache");
         }
 
-        return marketablesCache.Contains(id);
+        return marketablesCache;
     }
 }

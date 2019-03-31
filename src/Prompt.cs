@@ -27,6 +27,7 @@ public static class Prompt
             Dbg.Inf("  acquirenet rakshasa token");
             Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("  rewards nickel turban high steel fending");
+            Dbg.Inf("  vendormarket");
             Dbg.Inf("");
 
             string instr = Console.ReadLine();
@@ -93,6 +94,10 @@ public static class Prompt
             else if (RewardsRegex.Match(instr) is var rmatch && rmatch.Success)
             {
                 DoRewardsAnalysis(rmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+            }
+            else if (instr == "vendormarket")
+            {
+                DoVendorMarketAnalysis();
             }
             else
             {
@@ -416,6 +421,39 @@ public static class Prompt
         foreach (var item in rewards.Select(reward => Tuple.Create(reward.Item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.Item.Key, false, Market.Latency.Standard), reward.Item.Key, reward.Counts[0], Market.Latency.Standard) * reward.Counts[0])).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
+        }
+    }
+
+    struct MarketInfo
+    {
+        public float profit;
+        public string text;
+    }
+    public static void DoVendorMarketAnalysis()
+    {
+        int[] marketables = Commerce.Marketables().ToArray();
+        var results = new List<MarketInfo>();
+
+        for (int i = 0; i < marketables.Length; ++i)
+        {
+            Dbg.Inf($"{i}/{marketables.Length}");
+
+            var id = marketables[i];
+            var item = Db.Item(id);
+            if (!item.IsMarketable())
+            {
+                continue;
+            }
+
+            int stack = Math.Min(item.StackSize, 99);
+            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(id, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate) - item.Ask, id, stack, Market.Latency.Immediate);
+
+            results.Add(new MarketInfo() { profit = profit * stack, text = $"{Math.Round(profit * stack)}: {item.Name}"});
+        }
+
+        foreach (var result in results.OrderBy(mi => mi.profit))
+        {
+            Dbg.Inf(result.text);
         }
     }
 }
