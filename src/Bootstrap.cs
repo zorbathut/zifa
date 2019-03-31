@@ -135,7 +135,7 @@ public static class Bootstrap
 
         // Adjust profit
         // HQing things is hard, assume we're willing to sell at most ten per day
-        float profitTimeAdjusted = profit * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, hq ? 10 : 99));
+        float profitTimeAdjusted = (profit / recipe.ResultCount) * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, hq ? 10 : 99));
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
 
