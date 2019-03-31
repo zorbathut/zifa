@@ -120,7 +120,7 @@ public static class Bootstrap
     public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, Market.Latency latency)
     {
         var result = recipe.ResultItem;
-        float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency);
+        float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
         string readable = $"\n{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
         float tcost = 0;
         foreach (var ingredient in recipe.Ingredients)
