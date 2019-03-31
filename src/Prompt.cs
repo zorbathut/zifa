@@ -230,9 +230,8 @@ public static class Prompt
                 }
                 else
                 {
-                    float valueBase = Commerce.ValueSell(cost.Item.Key, cost.IsHq, Market.Latency.Standard) * cost.Count;
-                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, cost.Item.Key, amountNeeded / reward * cost.Count, Market.Latency.Standard);
-                    yield return new Bootstrap.Result() { gps = valueAdjusted / reward, name = label };
+                    float value = Commerce.ValueBuy(cost.Item.Key, cost.IsHq, Commerce.TransactionType.Immediate, Market.Latency.Standard) * cost.Count;
+                    yield return new Bootstrap.Result() { gps = value / reward, name = label };
                 }
             }
         }
