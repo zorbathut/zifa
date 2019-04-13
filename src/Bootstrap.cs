@@ -31,6 +31,8 @@ public static class Bootstrap
         public int minlevel;
         public int maxhqlevel;
         public int maxlevel;
+        public int craftsmanship;
+        public int control;
     }
 
     public static void Main(string[] args)
@@ -51,14 +53,25 @@ public static class Bootstrap
         //DoGCScripAnalysis();
         if (true)
             DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 15, maxlevel = 18 },
-                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21 },
-                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19 },
-                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21 },
-                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 19, maxlevel = 22 },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 60, maxlevel = 65 },
-                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 15, maxlevel = 18 },
-                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 16, maxlevel = 19 },
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 29, maxlevel = 33, craftsmanship = 150, control = 156 },
+                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 101, control = 99 },
+                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19, craftsmanship = 112, control = 103 },
+                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 117, control = 109 },
+                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 105, control = 105 },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 69, maxlevel = 70, craftsmanship = 895, control = 810 },
+                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 15, maxlevel = 18, craftsmanship = 106, control = 99 },
+                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 37, maxlevel = 40, craftsmanship = 183, control = 180 },
+            }, SortMethod.Profit);
+        if (false)
+            DoRecipeAnalysis(new CraftingInfo[] {
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
             }, SortMethod.Profit);
         //DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
         //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
@@ -188,7 +201,10 @@ public static class Bootstrap
                 bool validated = false;
                 foreach (var crafttype in craftingInfo)
                 {
-                    if (recipe.ClassJob.Name == crafttype.name && classLevel >= crafttype.minlevel && classLevel <= crafttype.maxlevel)
+                    if (recipe.ClassJob.Name == crafttype.name && classLevel >= crafttype.minlevel && classLevel <= crafttype.maxlevel
+                        && (crafttype.craftsmanship == 0 || recipe.RequiredCraftsmanship <= crafttype.craftsmanship)
+                        && (crafttype.control == 0 || recipe.RequiredControl <= crafttype.control)
+                    )
                     {
                         validated = true;
                         if (classLevel <= crafttype.maxhqlevel)
