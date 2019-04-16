@@ -362,7 +362,7 @@ public static class Prompt
                 if (recipe.ResultItem == item)
                 {
                     Dbg.Inf("");
-                    Dbg.Inf(Bootstrap.EvaluateItem(recipe, false, Market.Latency.Immediate).Item2);
+                    Dbg.Inf(Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate).Item2);
                 }
             }
 

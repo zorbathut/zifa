@@ -58,7 +58,7 @@ public static class Bootstrap
                 new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19, craftsmanship = 112, control = 103 },
                 new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 117, control = 109 },
                 new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 105, control = 105 },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 69, maxlevel = 70, craftsmanship = 895, control = 810 },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 60, maxlevel = 70, craftsmanship = 895, control = 810 },
                 new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 15, maxlevel = 18, craftsmanship = 106, control = 99 },
                 new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 37, maxlevel = 40, craftsmanship = 183, control = 180 },
             }, SortMethod.Profit);
@@ -130,7 +130,7 @@ public static class Bootstrap
     }
 
     readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
-    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, Market.Latency latency)
+    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency)
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
@@ -146,9 +146,11 @@ public static class Bootstrap
 
         float profit = expectedRevenue - tcost;
 
+        int craftQuantity = (canQuickSynth && !hq) ? 99 : 3;
+        
         // Adjust profit
         // HQing things is hard, assume we're willing to sell at most ten per day
-        float profitTimeAdjusted = (profit / recipe.ResultCount) * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, hq ? 10 : 99));
+        float profitTimeAdjusted = (profit / recipe.ResultCount) * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, craftQuantity));
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
 
@@ -196,6 +198,7 @@ public static class Bootstrap
 
             bool canHq = false;
 
+            bool canQuickSynth = false;
             {
                 // validate availability and see if we're allowed to try HQ'ing it
                 bool validated = false;
@@ -211,6 +214,10 @@ public static class Bootstrap
                         {
                             canHq = true;
                         }
+                        if (recipe.QuickSynthCraftsmanship <= crafttype.craftsmanship)
+                        {
+                            canQuickSynth = true;
+                        }
                     }
                 }
 
@@ -222,10 +229,10 @@ public static class Bootstrap
 
             if (canHq && result.CanBeHq)
             {
-                evaluators.Add(latency => EvaluateItem(recipe, true, latency));
+                evaluators.Add(latency => EvaluateItem(recipe, true, false, latency));
             }
 
-            evaluators.Add(latency => EvaluateItem(recipe, false, latency));
+            evaluators.Add(latency => EvaluateItem(recipe, false, canQuickSynth, latency));
         }
 
         if (sortMethod == SortMethod.Order)
