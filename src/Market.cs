@@ -29,7 +29,7 @@ public static class Market
 
             var firstDate = DateTimeOffset.FromUnixTimeSeconds(history.First()["PurchaseDate"].Value<long>());
             var lastDate = DateTimeOffset.FromUnixTimeSeconds(history.Last()["PurchaseDate"].Value<long>());
-            var halfSpan = TimeSpan.FromSeconds((firstDate - lastDate).TotalSeconds / 2);
+            var halfSpan = TimeSpan.FromSeconds((firstDate - lastDate).TotalSeconds / 4);
 
             var medianAge = TimeSpan.FromSeconds(history.Select(item => new Util.Element { value = firstDate.ToUnixTimeSeconds() - item["PurchaseDate"].Value<long>(), count = item["Quantity"].Value<int>() }).Median());
 
