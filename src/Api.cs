@@ -11,7 +11,7 @@ public static class Api
     private static string Key;
     private static Dictionary<string, string> KeyDict;
 
-    private const string Prefix = "https://staging.xivapi.com";
+    private const string Prefix = "https://www.xivapi.com";
 
     public static void Init()
     {
