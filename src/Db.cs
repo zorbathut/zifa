@@ -9,7 +9,7 @@ public static class Db
     public static void Init()
     {   
         const string GameDirectory = @"C:\Program Files (x86)\SquareEnix\FINAL FANTASY XIV - A Realm Reborn";
-        Realm = new SaintCoinach.ARealmReversed(GameDirectory, "../../../thirdparty/SaintCoinach/SaintCoinach/SaintCoinach.History.zip", SaintCoinach.Ex.Language.English);
+        Realm = new SaintCoinach.ARealmReversed(GameDirectory, "thirdparty/SaintCoinach/SaintCoinach/SaintCoinach.History.zip", SaintCoinach.Ex.Language.English);
         if (!Realm.IsCurrentVersion) {
             const bool IncludeDataChanges = true;
             var updateReport = Realm.Update(IncludeDataChanges, new Progress<SaintCoinach.Ex.Relational.Update.UpdateProgress>(prog => Dbg.Inf(prog.ToString())));

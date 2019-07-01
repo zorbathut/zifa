@@ -43,7 +43,7 @@ public static class Bootstrap
 
         {
             var parser = new Def.Parser();
-            foreach (var file in new DirectoryInfo(@"../../../xml").GetFiles("*.xml"))
+            foreach (var file in new DirectoryInfo(@"xml").GetFiles("*.xml"))
             {
                 parser.AddString(File.ReadAllText(file.FullName), file.Name);
             }
@@ -51,7 +51,7 @@ public static class Bootstrap
         }
 
         //DoGCScripAnalysis();
-        if (true)
+        if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
                 new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 29, maxlevel = 33, craftsmanship = 150, control = 156 },
                 new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 101, control = 99 },

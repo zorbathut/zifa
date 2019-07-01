@@ -15,7 +15,7 @@ public static class Api
 
     public static void Init()
     {
-        Key = File.ReadAllText(@"../../../appkey.txt");
+        Key = File.ReadAllText(@"appkey.txt");
         KeyDict = new Dictionary<string, string>
         {
             ["key"] = Key

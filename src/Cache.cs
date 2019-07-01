@@ -8,7 +8,7 @@ public static class Cache
 
     public static void Init()
     {
-        DbConnection = new SQLiteConnection("Data Source=../../../cache.sqlite");
+        DbConnection = new SQLiteConnection("Data Source=cache.sqlite");
         DbConnection.Open();
 
         DbConnection.ExecuteNonQuery("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, time INTEGER NOT NULL, value TEXT NOT NULL)");

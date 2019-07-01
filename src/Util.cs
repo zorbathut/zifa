@@ -22,6 +22,7 @@ public static class Util
             }
             catch (WebException ex)
             {
+                Dbg.Err(url);
                 Dbg.Ex(ex);
 
                 WebResponse errResp = ex.Response;
