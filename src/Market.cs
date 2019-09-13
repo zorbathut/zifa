@@ -83,7 +83,14 @@ public static class Market
                 new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
             )["Midgardsormr"];
 
-        retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
+        if (apiresult.Contains("Updated"))
+        {
+            retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
+        }
+        else
+        {
+            retrievalTime = DateTimeOffset.Now;
+        }
         
         return apiresult as JObject;
     }
