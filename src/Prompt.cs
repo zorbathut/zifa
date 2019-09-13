@@ -171,18 +171,20 @@ public static class Prompt
                 string name = reward.Item.Name;
                 var label = $"{name}{(reward.Count > 1 ? $" x{reward.Count}" : "")}{(reward.IsHq ? " HQ" : "")}";
 
+                // Always include this, because this is how we calculate vendor prices
+                {
+                    float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, Market.Latency.Standard) * reward.Count;
+                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, Market.Latency.Standard);
+                    yield return new Bootstrap.Result() { gps = valueAdjusted / cost, name = label };
+                }
+
+                // Branch out if we can't sell it on the market; there might be more lucrative options!
                 if (!reward.Item.IsMarketable())
                 {
                     foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key, amountAcquired / cost * reward.Count))
                     {
                         yield return new Bootstrap.Result() { gps = elem.gps / cost * reward.Count, name = $"{label} -> {elem.name}" };
                     }
-                }
-                else
-                {
-                    float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, Market.Latency.Standard) * reward.Count;
-                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, Market.Latency.Standard);
-                    yield return new Bootstrap.Result() { gps = valueAdjusted / cost, name = label };
                 }
             }
         }
