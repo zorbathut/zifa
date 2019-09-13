@@ -50,10 +50,10 @@ public static class Bootstrap
             parser.Finish();
         }
 
-        //DoGCScripAnalysis();
+        DoGCScripAnalysis();
         if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 29, maxlevel = 33, craftsmanship = 150, control = 156 },
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 34, maxlevel = 36, craftsmanship = 174, control = 175 },
                 new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 101, control = 99 },
                 new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19, craftsmanship = 112, control = 103 },
                 new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 117, control = 109 },
@@ -64,17 +64,16 @@ public static class Bootstrap
             }, SortMethod.Profit);
         if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
-                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 70, maxlevel = 70 },
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
+                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
             }, SortMethod.Profit);
         //DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
-        //GatheringCalculator.ProcessLongterm(81, 7, 500, 4, true);
         //CraftingCalculator.Process();
         /*
         DoCollectibleCombinationMath(new CollectibleCombination[] {
