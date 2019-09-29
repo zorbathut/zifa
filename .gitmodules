@@ -4,3 +4,6 @@
 [submodule "thirdparty/def"]
 	path = thirdparty/def
 	url = https://github.com/zorbathut/def.git
+[submodule "thirdparty/cherenkov"]
+	path = thirdparty/cherenkov
+	url = https://github.com/zorbathut/cherenkov.git
