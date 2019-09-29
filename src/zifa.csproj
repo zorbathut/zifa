@@ -74,6 +74,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\thirdparty\cherenkov\src\cherenkov.csproj">
+      <Project>{468b4ec6-5746-40ca-850e-420b13a2122a}</Project>
+      <Name>cherenkov</Name>
+    </ProjectReference>
     <ProjectReference Include="..\thirdparty\def\src\def.csproj">
       <Project>{7e22d84e-d7b3-4cd2-b33c-7d031b8f0e10}</Project>
       <Name>def</Name>

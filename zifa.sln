@@ -16,6 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotSquish", "thirdparty\SaintCoinach\DotSquish\DotSquish.csproj", "{F9681545-4BEA-4FD3-9AB9-A67BD37AB36D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cherenkov", "thirdparty\cherenkov\src\cherenkov.csproj", "{468B4EC6-5746-40CA-850E-420B13A2122A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{F9681545-4BEA-4FD3-9AB9-A67BD37AB36D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9681545-4BEA-4FD3-9AB9-A67BD37AB36D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9681545-4BEA-4FD3-9AB9-A67BD37AB36D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{468B4EC6-5746-40CA-850E-420B13A2122A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{468B4EC6-5746-40CA-850E-420B13A2122A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{468B4EC6-5746-40CA-850E-420B13A2122A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{468B4EC6-5746-40CA-850E-420B13A2122A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

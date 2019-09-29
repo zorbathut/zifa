@@ -41,6 +41,10 @@ public static class Bootstrap
         Api.Init();
         Db.Init();
 
+        Cherenkov.Session session = new Cherenkov.Session();
+
+        return;
+
         {
             var parser = new Def.Parser();
             foreach (var file in new DirectoryInfo(@"xml").GetFiles("*.xml"))
@@ -50,7 +54,7 @@ public static class Bootstrap
             parser.Finish();
         }
 
-        DoGCScripAnalysis();
+        //DoGCScripAnalysis();
         if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
                 new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 34, maxlevel = 36, craftsmanship = 174, control = 175 },
