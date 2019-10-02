@@ -37,13 +37,18 @@ public static class Bootstrap
 
     public static void Main(string[] args)
     {
+        Def.Config.InfoHandler = Dbg.Inf;
+        Def.Config.WarningHandler = Dbg.Wrn;
+        Def.Config.ErrorHandler = Dbg.Err;
+        Def.Config.ExceptionHandler = Dbg.Ex;
+        Cherenkov.Config.InfoHandler = Dbg.Inf;
+        Cherenkov.Config.WarningHandler = Dbg.Wrn;
+        Cherenkov.Config.ErrorHandler = Dbg.Err;
+        Cherenkov.Config.ExceptionHandler = Dbg.Ex;
+
         Cache.Init();
         Api.Init();
         Db.Init();
-
-        Cherenkov.Session session = new Cherenkov.Session();
-
-        return;
 
         {
             var parser = new Def.Parser();
@@ -53,6 +58,10 @@ public static class Bootstrap
             }
             parser.Finish();
         }
+
+        Cherenkov.Session session = new Cherenkov.Session();
+
+        return;
 
         //DoGCScripAnalysis();
         if (false)
