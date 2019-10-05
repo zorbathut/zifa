@@ -468,7 +468,7 @@ public static class Prompt
             }
 
             int stack = Math.Min(item.StackSize, 99);
-            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(id, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate) - item.Ask, id, stack, Market.Latency.Immediate);
+            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(id, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard) - item.Ask, id, stack, Market.Latency.Standard);
 
             results.Add(new MarketInfo() { profit = profit * stack, text = $"{Math.Round(profit * stack)}: {item.Name}"});
         }
@@ -481,27 +481,82 @@ public static class Prompt
 
     public static void DoRetainerGatherAnalysis(string role, int skill)
     {
+        bool gatherer = true;
+
         if (role == "min") role = "miner";
         if (role == "btn") role = "botanist";
-        if (role == "dow") role = "rogue"; // close enough
+        if (role == "dow") { role = "rogue"; gatherer = false; } // close enough
 
-        foreach (var task in Db.GetSheet<SaintCoinach.Xiv.RetainerTask>())
+        var results = new List<MarketInfo>();
+        foreach (var task in Db.GetSheet<SaintCoinach.Xiv.RetainerTask>().ProgressBar())
         {
             if (!task.ClassJobCategory.ClassJobs.Any(cj => cj.Name == role))
             {
                 continue;
             }
 
-            var items = task.Items.ToArray();
+            if (gatherer && task.RequiredGathering > skill)
+            {
+                continue;
+            }
 
+            if (!gatherer && task.RequiredItemLevel > skill)
+            {
+                continue;
+            }
+
+            var items = task.Items.ToArray();
             if (items.Length != 1)
             {
-                Dbg.Inf($"{task.Key}: Too many items");
+                continue;
+            }
+
+            int itemId = items[0].Key;
+
+            // Gotta figure out how many we expect to get.
+            var parameter = task["RetainerTaskParameter"] as SaintCoinach.Xiv.XivRow;
+            
+            var midthresh = gatherer ? parameter.AsInt32("Gathering{DoL}[0]") : parameter.AsInt32("ItemLevel{DoW}[0]");
+            var highthresh = gatherer ? parameter.AsInt32("Gathering{DoL}[1]") : parameter.AsInt32("ItemLevel{DoW}[1]");
+
+            var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
+            if (normal == null)
+            {
+                continue;
+            }
+
+            int quantity;
+            if (highthresh <= skill)
+            {
+                quantity = normal.AsInt32("Quantity[2]");
+            }
+            else if (midthresh <= skill)
+            {
+                quantity = normal.AsInt32("Quantity[1]");
             }
             else
             {
-                Dbg.Inf($"{task.Key}: {items[0].Name}");
+                quantity = normal.AsInt32("Quantity[0]");
             }
+
+            float profit = 0;
+            if (items[0].CanBeHq)
+            {
+                // 20% HQ; vague estimate
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity * 0.2f, Market.Latency.Standard) * quantity * 0.2f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity * 0.8f, Market.Latency.Standard) * quantity * 0.8f;
+            }
+            else
+            {
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity, Market.Latency.Standard) * quantity;
+            }
+
+            results.Add(new MarketInfo() { profit = profit, text = $"{profit}: {quantity}x {items[0].Name}" });
+        }
+
+        foreach (var result in results.OrderBy(mi => mi.profit))
+        {
+            Dbg.Inf(result.text);
         }
     }
 }

@@ -8,6 +8,31 @@ using System.Threading;
 
 public static class Api
 {
+    private static Cherenkov.Session s_Cherenkov;
+    private static TimeSpan s_CherenkovInitTime = new TimeSpan();
+
+    private static void InitCherenkov()
+    {
+        if (s_Cherenkov == null)
+        {
+            var start = DateTimeOffset.Now;
+
+            Cherenkov.Config.InfoHandler = Dbg.Inf;
+            Cherenkov.Config.WarningHandler = Dbg.Wrn;
+            Cherenkov.Config.ErrorHandler = Dbg.Err;
+            Cherenkov.Config.ExceptionHandler = Dbg.Ex;
+            
+            s_Cherenkov = new Cherenkov.Session();
+
+            s_CherenkovInitTime += DateTimeOffset.Now - start;
+        }
+    }
+
+    public static TimeSpan InitCherenkovTime()
+    {
+        return s_CherenkovInitTime;
+    }
+
     public static Cherenkov.Session.MarketHistoryResponse RetrieveHistory(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
     {
         retrievalTime = DateTimeOffset.MinValue;
@@ -16,7 +41,9 @@ public static class Api
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
-            result = Bootstrap.s_Cherenkov.GetMarketHistory(id);
+            InitCherenkov();
+
+            result = s_Cherenkov.GetMarketHistory(id);
             Cache.StoreCacheEntry(cacheId, result);
             retrievalTime = DateTimeOffset.Now;
         }
@@ -32,7 +59,9 @@ public static class Api
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
-            result = Bootstrap.s_Cherenkov.GetMarketPrices(id);
+            InitCherenkov();
+
+            result = s_Cherenkov.GetMarketPrices(id);
             Cache.StoreCacheEntry(cacheId, result);
             retrievalTime = DateTimeOffset.Now;
         }

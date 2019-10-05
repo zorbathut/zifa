@@ -35,21 +35,16 @@ public static class Bootstrap
         public int control;
     }
 
-    public static Cherenkov.Session s_Cherenkov;
-
     public static void Main(string[] args)
     {
         Def.Config.InfoHandler = Dbg.Inf;
         Def.Config.WarningHandler = Dbg.Wrn;
         Def.Config.ErrorHandler = Dbg.Err;
         Def.Config.ExceptionHandler = Dbg.Ex;
-        Cherenkov.Config.InfoHandler = Dbg.Inf;
-        Cherenkov.Config.WarningHandler = Dbg.Wrn;
-        Cherenkov.Config.ErrorHandler = Dbg.Err;
-        Cherenkov.Config.ExceptionHandler = Dbg.Ex;
 
         Cache.Init();
         Db.Init();
+        Cherenkov.Session.Init();
 
         {
             var parser = new Def.Parser();
@@ -60,19 +55,17 @@ public static class Bootstrap
             parser.Finish();
         }
 
-        s_Cherenkov = new Cherenkov.Session();
-
         //DoGCScripAnalysis();
-        if (false)
+        if (true)
             DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 34, maxlevel = 36, craftsmanship = 174, control = 175 },
-                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 101, control = 99 },
-                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 16, maxlevel = 19, craftsmanship = 112, control = 103 },
-                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 117, control = 109 },
-                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 105, control = 105 },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 60, maxlevel = 70, craftsmanship = 895, control = 810 },
-                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 15, maxlevel = 18, craftsmanship = 106, control = 99 },
-                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 37, maxlevel = 40, craftsmanship = 183, control = 180 },
+                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 36, maxlevel = 40, craftsmanship = 189, control = 189 },
+                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 108, control = 115 },
+                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 119, control = 122 },
+                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 124, control = 125 },
+                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 23, craftsmanship = 112, control = 117 },
+                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 70, maxlevel = 75, craftsmanship = 1489, control = 1304 },
+                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 17, maxlevel = 20, craftsmanship = 106, control = 116 },
+                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 38, craftsmanship = 183, control = 186 },
             }, SortMethod.Profit);
         if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
@@ -249,7 +242,7 @@ public static class Bootstrap
         if (sortMethod == SortMethod.Order)
         {
             // ToArray forces it to be evaluated before printing so we don't interlace with debug output
-            foreach (var output in evaluators.Select(item =>  item(Market.Latency.Standard).Item2).ToArray())
+            foreach (var output in evaluators.ProgressBar().Select(item =>  item(Market.Latency.Standard).Item2).ToArray())
             {
                 Dbg.Inf(output);
             }
@@ -258,10 +251,8 @@ public static class Bootstrap
         {
             var recipeInfo = new List<RecipeData>();
 
-            for (int i = 0; i < evaluators.Count; ++i)
+            foreach (int i in Enumerable.Range(0, evaluators.Count).ProgressBar())
             {
-                Dbg.Inf($"{i} / {evaluators.Count}");
-
                 var result = evaluators[i](Market.Latency.Standard);
                 recipeInfo.Add(new RecipeData() {evaluator = evaluators[i], estimate = result.Item1});
             }

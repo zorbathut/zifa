@@ -130,6 +130,43 @@ public static class Util
     {
         return item.ItemSearchCategory.Category != 0;
     }
+
+    private static Random shuffleRng = new Random();
+    public static void Shuffle<T>(this T[] input)  
+    {  
+        int n = input.Length;
+        while (n > 1) {  
+            n--;  
+            int k = shuffleRng.Next(n + 1);  
+            T value = input[k];  
+            input[k] = input[n];  
+            input[n] = value;  
+        }  
+    }
+
+    public static IEnumerable<T> ProgressBar<T>(this IEnumerable<T> input)
+    {
+        var values = input.ToArray();
+        values.Shuffle();
+
+        var startTime = DateTimeOffset.Now;
+        var cherenkovInitAlreadyTaken = Api.InitCherenkovTime();
+
+        for (int i = 0; i < values.Length; ++i)
+        {
+            if (i > 0)
+            {
+                var currentTime = DateTimeOffset.Now;
+                var perItemMs = (currentTime - startTime - Api.InitCherenkovTime() + cherenkovInitAlreadyTaken).TotalMilliseconds / i;
+                var remaining = TimeSpan.FromMilliseconds(perItemMs * (values.Length - i));
+
+                Dbg.Inf($"{i} / {values.Length} -- ETA {remaining.TotalMinutes:F2}m");
+            }
+            
+
+            yield return values[i];
+        }
+    }
 }
 
 public static class EnumUtil
