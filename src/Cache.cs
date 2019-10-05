@@ -23,9 +23,6 @@ public static class Cache
             return null;
         }
 
-        // We technically don't need this until later, but we keep it up here so we get appropriate angry messages if it fails
-        var categoryInfo = Category.GetKeyCategoryInfo(key);
-
         var cmd = new SQLiteCommand("SELECT time, value FROM cache WHERE key=@key", DbConnection);
         cmd.Parameters.AddWithValue("@key", key);
         var reader = cmd.ExecuteReader();

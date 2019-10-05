@@ -20,18 +20,16 @@ public static class Market
         TimeSpan invalidationTime;
         if (cached != null)
         {
-            var history = cached["History"].OfType<JObject>();
-
-            if (history.Count() == 0)
+            if (cached.history.Count == 0)
             {
                 return TimeSpan.FromDays(2);
             }
 
-            var firstDate = DateTimeOffset.FromUnixTimeSeconds(history.First()["PurchaseDate"].Value<long>());
-            var lastDate = DateTimeOffset.FromUnixTimeSeconds(history.Last()["PurchaseDate"].Value<long>());
+            var firstDate = DateTimeOffset.FromUnixTimeSeconds(cached.history.First().buyRealDate / 1000);
+            var lastDate = DateTimeOffset.FromUnixTimeSeconds(cached.history.Last().buyRealDate / 1000);
             var halfSpan = TimeSpan.FromSeconds((firstDate - lastDate).TotalSeconds / 4);
 
-            var medianAge = TimeSpan.FromSeconds(history.Select(item => new Util.Element { value = firstDate.ToUnixTimeSeconds() - item["PurchaseDate"].Value<long>(), count = item["Quantity"].Value<int>() }).Median());
+            var medianAge = TimeSpan.FromSeconds(cached.history.Select(item => new Util.Element { value = firstDate.ToUnixTimeSeconds() - item.buyRealDate / 1000, count = item.stack }).Median());
 
             invalidationTime = TimeSpan.FromSeconds(MathUtil.Clamp(Math.Min(halfSpan.TotalSeconds, medianAge.TotalSeconds), 60 * 60 * 24, 60 * 60 * 24 * 14));
         }
@@ -43,7 +41,7 @@ public static class Market
         return invalidationTime;
     }
 
-    public static JObject History(int id, Latency latency)
+    public static Cherenkov.Session.MarketHistoryResponse History(int id, Latency latency)
     {
         DateTimeOffset _;
         return History(id, latency, out _);
@@ -68,7 +66,7 @@ public static class Market
         return GetCacheTime(id, Latency.Standard);
     }
 
-    public static JObject History(int id, Latency latency, out DateTimeOffset retrievalTime)
+    public static Cherenkov.Session.MarketHistoryResponse History(int id, Latency latency, out DateTimeOffset retrievalTime)
     {
         if (!Db.Item(id).IsMarketable())
         {
@@ -76,46 +74,28 @@ public static class Market
             return null;
         }
 
-        var apiresult = Api.Retrieve(
-                $"/market/item/{id}",
-                GetCacheTime(id, latency),
-                out retrievalTime,
-                new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
-            )["Midgardsormr"];
-
-        if (apiresult.Contains("Updated"))
-        {
-            retrievalTime = DateTimeOffset.FromUnixTimeSeconds(apiresult["Updated"].Value<long>());
-        }
-        else
-        {
-            retrievalTime = DateTimeOffset.Now;
-        }
+        var apiresult = Api.RetrieveHistory(id, GetCacheTime(id, latency), out retrievalTime);
         
-        return apiresult as JObject;
+        return apiresult;
     }
 
-    public static JObject Prices(int id, Latency latency)
+    public static Cherenkov.Session.MarketPriceResponse Prices(int id, Latency latency)
     {
         if (!Db.Item(id).IsMarketable())
         {
             return null;
         }
 
-        return Api.Retrieve(
-                $"/market/item/{id}",
-                GetCacheTime(id, latency),
-                new Dictionary<string, string>() { { "servers", "Midgardsormr" } }
-            )["Midgardsormr"] as JObject;
+        return Api.RetrievePricing(id, GetCacheTime(id, latency));
     }
 
     public static bool IsSelling(int id, string[] people)
     {
         var prices = Prices(id, Latency.Immediate);
 
-        foreach (var price in prices["Prices"].OfType<JObject>())
+        foreach (var price in prices.entries)
         {
-            string poster = price["RetainerName"].Value<string>();
+            string poster = price.sellRetainerName;
             if (people.Contains(poster))
             {
                 return true;

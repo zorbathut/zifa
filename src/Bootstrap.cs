@@ -35,6 +35,8 @@ public static class Bootstrap
         public int control;
     }
 
+    public static Cherenkov.Session s_Cherenkov;
+
     public static void Main(string[] args)
     {
         Def.Config.InfoHandler = Dbg.Inf;
@@ -47,7 +49,6 @@ public static class Bootstrap
         Cherenkov.Config.ExceptionHandler = Dbg.Ex;
 
         Cache.Init();
-        Api.Init();
         Db.Init();
 
         {
@@ -59,9 +60,7 @@ public static class Bootstrap
             parser.Finish();
         }
 
-        Cherenkov.Session session = new Cherenkov.Session();
-
-        return;
+        s_Cherenkov = new Cherenkov.Session();
 
         //DoGCScripAnalysis();
         if (false)

@@ -14,6 +14,7 @@ public static class Prompt
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -23,13 +24,14 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf("Options:");
             Dbg.Inf("  gpoint wind coin");
-            Dbg.Inf("  gatherbest 70 70");
+            Dbg.Inf("  gatherbest (gather) (mine)");
             Dbg.Inf("  vendornet 2000 tomestone poetic");
             Dbg.Inf("  acquirenet rakshasa token");
             Dbg.Inf("  analyze craftsman vi");
             Dbg.Inf("  rewards nickel turban high steel fending");
             Dbg.Inf("  vendormarket");
             Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly)");
+            Dbg.Inf("  retainergather {dow/btn/min} {skill}");
             Dbg.Inf("");
 
             string instr = Console.ReadLine();
@@ -110,6 +112,13 @@ public static class Prompt
                 int hqonly = int.Parse(gcmatch.Groups["hqonly"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
 
                 GatheringCalculator.ProcessLongterm(lchance, hqchance, maxgp, attempts, hqonly != 0);
+            }
+            else if (RetainerGatherRegex.Match(instr) is var rgmatch && rgmatch.Success)
+            {
+                string role = rgmatch.Groups["role"].Value;
+                int skill = int.Parse(rgmatch.Groups["skill"].Value);
+
+                DoRetainerGatherAnalysis(role, skill);
             }
             else
             {
@@ -467,6 +476,32 @@ public static class Prompt
         foreach (var result in results.OrderBy(mi => mi.profit))
         {
             Dbg.Inf(result.text);
+        }
+    }
+
+    public static void DoRetainerGatherAnalysis(string role, int skill)
+    {
+        if (role == "min") role = "miner";
+        if (role == "btn") role = "botanist";
+        if (role == "dow") role = "rogue"; // close enough
+
+        foreach (var task in Db.GetSheet<SaintCoinach.Xiv.RetainerTask>())
+        {
+            if (!task.ClassJobCategory.ClassJobs.Any(cj => cj.Name == role))
+            {
+                continue;
+            }
+
+            var items = task.Items.ToArray();
+
+            if (items.Length != 1)
+            {
+                Dbg.Inf($"{task.Key}: Too many items");
+            }
+            else
+            {
+                Dbg.Inf($"{task.Key}: {items[0].Name}");
+            }
         }
     }
 }

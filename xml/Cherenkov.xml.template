@@ -3,5 +3,8 @@
     <webProxyIP>yourVpnIpHere</webProxyIP>
     <webProxyUsername>yourVpnUsernameHere</webProxyUsername>
     <webProxyPassword>yourVpnPasswordHere</webProxyPassword>
+
+    <ff14Username>yourFF14UsernameHere</ff14Username>
+    <ff14Password>yourFF14PasswordHere</ff14Password>
   </CherenkovDataDef>
 </Defs>

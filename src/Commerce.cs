@@ -30,42 +30,34 @@ public static class Commerce
         {
             var results = Market.History(id, latency);
 
-            var history = results["History"].OfType<JObject>();
+            Util.Element builder(Cherenkov.Session.MarketHistoryResponse.Entry item) => new Util.Element { value = item.sellPrice, count = item.stack };
 
-            Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
-
-            lqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
-            hqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
-            unfiltered = history.Select(builder).Median();
+            lqp = results.history.Where(item => item.hq == false).Select(builder).Median();
+            hqp = results.history.Where(item => item.hq == true).Select(builder).Median();
+            unfiltered = results.history.Select(builder).Median();
         }
         else if (type == TransactionType.Immediate)
         {
             var results = Market.Prices(id, latency);
 
-            var prices = results["Prices"].OfType<JObject>();
-
-            lqp = prices.Where(item => item["IsHQ"].Value<bool>() == false).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
-            hqp = prices.Where(item => item["IsHQ"].Value<bool>() == true).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
-            unfiltered = prices.Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+            lqp = results.entries.Where(item => item.hq == false).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            hqp = results.entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            unfiltered = results.entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
         }
         else if (type == TransactionType.Fastsell)
         {
             var resulthistory = Market.History(id, latency);
 
-            var history = resulthistory["History"].OfType<JObject>();
+            Util.Element builder(Cherenkov.Session.MarketHistoryResponse.Entry item) => new Util.Element { value = item.sellPrice, count = item.stack };
 
-            Util.Element builder(JObject item) => new Util.Element { value = item["PricePerUnit"].Value<int>(), count = item["Quantity"].Value<int>() };
-
-            float hlqp = history.Where(item => item["IsHQ"].Value<bool>() == false).Select(builder).Median();
-            float hhqp = history.Where(item => item["IsHQ"].Value<bool>() == true).Select(builder).Median();
-            float hunfiltered = history.Select(builder).Median();
+            float hlqp = resulthistory.history.Where(item => item.hq == false).Select(builder).Median();
+            float hhqp = resulthistory.history.Where(item => item.hq == true).Select(builder).Median();
+            float hunfiltered = resulthistory.history.Select(builder).Median();
 
             var resultprices = Market.Prices(id, latency);
 
-            var prices = resultprices["Prices"].OfType<JObject>();
-
-            float phqp = prices.Where(item => item["IsHQ"].Value<bool>() == true).Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
-            float punfiltered = prices.Select(item => item["PricePerUnit"].Value<float>()).FirstOrDefault(float.NaN);
+            float phqp = resultprices.entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            float punfiltered = resultprices.entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
 
             // TODO MIN OR NAN
             lqp = Math.Min(hlqp, punfiltered);
@@ -109,17 +101,16 @@ public static class Commerce
         DateTimeOffset retrievalTime;
         var results = Market.History(id, latency, out retrievalTime);
 
-        var history = results["History"].OfType<JObject>();
-        if (!history.Any())
+        if (results.history.Count == 0)
         {
             // welp
             return float.NaN;
         }
 
-        long lastDate = history.Last()["PurchaseDate"].Value<long>();
+        long lastDate = results.history.Last().buyRealDate / 1000;
         long span = retrievalTime.ToUnixTimeSeconds() - lastDate;
 
-        int totalQuantity = history.Sum(item => item["Quantity"].Value<int>());
+        int totalQuantity = results.history.Sum(item => item.stack);
 
         return (float)totalQuantity / span * 60 * 60 * 24;
     }
