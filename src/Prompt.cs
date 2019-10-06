@@ -386,8 +386,10 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf($"{item.Name}:");
             Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
+            Dbg.Inf($"  Market immediate HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
+            Dbg.Inf($"  Market fastsell HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market sales per day: {Commerce.MarketSalesPerDay(item.Key, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1, Market.Latency.Immediate)}");
             Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
@@ -662,7 +664,7 @@ public static class Prompt
 
             var remaining = new HashSet<SaintCoinach.Xiv.Item>();
 
-            foreach (var itemcombo in items.ProgressBar())
+            foreach (var itemcombo in items.OrderBy(itemcombo => itemcombo.Key.Name).ProgressBar(false))
             {
                 // First filter out the market purchases
 
@@ -708,7 +710,7 @@ public static class Prompt
 
                 // Grab things
                 var newRemaining = new HashSet<SaintCoinach.Xiv.Item>();
-                foreach (var item in remaining)
+                foreach (var item in remaining.OrderBy(item => item.Name))
                 {
                     if (Commerce.SellersForItem(item.Key).Contains(bestNpc))
                     {
