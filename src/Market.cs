@@ -20,6 +20,12 @@ public static class Market
         TimeSpan invalidationTime;
         if (cached != null)
         {
+            if (cached.history == null)
+            {
+                Dbg.Err("WHAT WHAT");
+                return TimeSpan.Zero;
+            }
+
             if (cached.history.Count == 0)
             {
                 return TimeSpan.FromDays(2);
