@@ -152,19 +152,62 @@ public static class Util
         var startTime = DateTimeOffset.Now;
         var cherenkovInitAlreadyTaken = Api.InitCherenkovTime();
 
+        DateTimeOffset lastShown = DateTimeOffset.Now;
+
         for (int i = 0; i < values.Length; ++i)
         {
-            if (i > 0)
+            if (i > 0 && (DateTimeOffset.Now - lastShown).TotalSeconds > 0.2f)
             {
                 var currentTime = DateTimeOffset.Now;
                 var perItemMs = (currentTime - startTime - Api.InitCherenkovTime() + cherenkovInitAlreadyTaken).TotalMilliseconds / i;
                 var remaining = TimeSpan.FromMilliseconds(perItemMs * (values.Length - i));
 
                 Dbg.Inf($"{i} / {values.Length} -- ETA {remaining.TotalMinutes:F2}m");
+                lastShown = DateTimeOffset.Now;
             }
             
-
             yield return values[i];
+        }
+    }
+
+    public static T MaxBy<T>(this IEnumerable<T> input, Func<T, int> predicate)
+    {
+        var result = default(T);
+        int best = int.MinValue;
+        foreach (var elem in input)
+        {
+            int compare = predicate(elem);
+            if (compare >= best)
+            {
+                best = compare;
+                result = elem;
+            }
+        }
+
+        return result;
+    }
+
+    public static string ToZifaString(this SaintCoinach.Xiv.ENpc npc)
+    {
+        if (npc.Locations.Any())
+        {
+            return $"{npc.Singular}/{npc.Title} in {npc.Locations.First().PlaceName.Name}";
+        }
+        else
+        {
+            return $"{npc.Singular}/{npc.Title}";
+        }
+    }
+
+    public static V TryGetValue<K, V>(this Dictionary<K, V> dict, K key)
+    {
+        if (dict.TryGetValue(key, out V result))
+        {
+            return result;
+        }
+        else
+        {
+            return default(V);
         }
     }
 }

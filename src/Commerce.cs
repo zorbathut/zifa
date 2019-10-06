@@ -204,21 +204,111 @@ public static class Commerce
         return Marketables().Contains(id);
     }
 
-    private static HashSet<int> marketablesCache;
-    public static HashSet<int> Marketables()
+    private static Dictionary<int, SaintCoinach.Xiv.ENpc[]> itemToNPC;
+    private static Dictionary<SaintCoinach.Xiv.ENpc, int> npcToItemCount;
+    private static string[] blacklistedMerchants = new string[]
     {
-        if (marketablesCache == null)
-        {
-            marketablesCache = new HashSet<int>();
+        "Kojin material supplier",
+        "merchant & mender",
+    };
 
-            foreach (var shopItem in Db.GetSheet2<SaintCoinach.Xiv.GilShopItem>())
+    private static void ConsumeData(SaintCoinach.Xiv.GilShop shop, Dictionary<int, List<SaintCoinach.Xiv.ENpc>> marketablesTemp, SaintCoinach.Xiv.ENpc npc)
+    {
+        foreach (var element in shop.Items)
+        {
+            int itemid = element.Item.Key;
+
+            if (!marketablesTemp.ContainsKey(itemid))
             {
-                marketablesCache.Add(shopItem.Item.Key);
+                marketablesTemp[itemid] = new List<SaintCoinach.Xiv.ENpc>();
             }
 
-            Dbg.Inf("Generated marketables cache");
+            marketablesTemp[itemid].Add(npc);
         }
+    }
 
-        return marketablesCache;
+    private static void ConsumeData(SaintCoinach.Xiv.XivRow row, Dictionary<int, List<SaintCoinach.Xiv.ENpc>> marketablesTemp, SaintCoinach.Xiv.ENpc npc)
+    {
+        for (int i = 0; i < 10; ++i)    // 10 is hardcoded in the db format
+        {
+            var data = row[SaintCoinach.Xiv.XivRow.BuildColumnName("Shop", i)] as SaintCoinach.Xiv.GilShop;
+
+            if (data != null)
+            {
+                ConsumeData(data, marketablesTemp, npc);
+            }
+        }
+    }
+
+    public static void GenerateMarketables()
+    {
+        if (itemToNPC == null)
+        {
+            Dbg.Inf("Generating marketables cache . . .");
+
+            var gsi = new List<SaintCoinach.Xiv.GilShopItem>();
+            foreach (var shopItem in Db.GetSheet2<SaintCoinach.Xiv.GilShopItem>())
+            {
+                gsi.Add(shopItem);
+            }
+
+            // TAKE 2
+            var marketablesTemp = new Dictionary<int, List<SaintCoinach.Xiv.ENpc>>();
+            foreach (var npc in Db.Realm.GameData.ENpcs.ProgressBar())
+            {
+                foreach (var data in npc.Base.AssignedData)
+                {
+                    if (data is SaintCoinach.Xiv.GilShop)
+                    {
+                        ConsumeData(data as SaintCoinach.Xiv.GilShop, marketablesTemp, npc);
+                    }
+                    else if (data.GetType() == typeof(SaintCoinach.Xiv.XivRow))
+                    {
+                        var xivrow = data as SaintCoinach.Xiv.XivRow;
+
+                        if (xivrow.Sheet.Header.Name == "TopicSelect")
+                        {
+                            ConsumeData(data as SaintCoinach.Xiv.XivRow, marketablesTemp, npc);
+                        }
+                    }
+                }
+            }
+
+            itemToNPC = new Dictionary<int, SaintCoinach.Xiv.ENpc[]>();
+            npcToItemCount = new Dictionary<SaintCoinach.Xiv.ENpc, int>();
+            foreach (var kv in marketablesTemp)
+            {
+                itemToNPC[kv.Key] = kv.Value.Distinct().ToArray();
+
+                foreach (var npc in itemToNPC[kv.Key])
+                {
+                    if (!npcToItemCount.ContainsKey(npc))
+                    {
+                        npcToItemCount[npc] = 0;
+                    }
+
+                    npcToItemCount[npc] = npcToItemCount[npc] + 1;
+                }
+            }
+
+            Dbg.Inf("Done");
+        }
+    }
+
+    public static IEnumerable<int> Marketables()
+    {
+        GenerateMarketables();
+
+        return itemToNPC.Select(x => x.Key);
+    }
+
+    public static IEnumerable<SaintCoinach.Xiv.ENpc> SellersForItem(int itemId)
+    {
+        return itemToNPC[itemId];
+    }
+
+    public static int ItemCountInShop(SaintCoinach.Xiv.ENpc seller)
+    {
+        return npcToItemCount.TryGetValue(seller);
     }
 }

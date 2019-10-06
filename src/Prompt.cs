@@ -15,6 +15,7 @@ public static class Prompt
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex CraftSourceRegex = new Regex("^craftsource (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -23,15 +24,16 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf("");
             Dbg.Inf("Options:");
-            Dbg.Inf("  gpoint wind coin");
-            Dbg.Inf("  gatherbest (gather) (mine)");
-            Dbg.Inf("  vendornet 2000 tomestone poetic");
-            Dbg.Inf("  acquirenet rakshasa token");
-            Dbg.Inf("  analyze craftsman vi");
-            Dbg.Inf("  rewards nickel turban high steel fending");
-            Dbg.Inf("  vendormarket");
-            Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly)");
-            Dbg.Inf("  retainergather {dow/btn/min} {skill}");
+            Dbg.Inf("  gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
+            Dbg.Inf("  gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
+            Dbg.Inf("  vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
+            Dbg.Inf("  acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
+            Dbg.Inf("  analyze craftsman vi - dumps various crafting and market info on an item");
+            Dbg.Inf("  rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
+            Dbg.Inf("  vendormarket - finds the best items to be purchased from vendors and marketed");
+            Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
+            Dbg.Inf("  retainergather {dow/btn/min} {skill} - calculates the best items for retainers to gather");
+            Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
             Dbg.Inf("");
 
             string instr = Console.ReadLine();
@@ -119,6 +121,14 @@ public static class Prompt
                 int skill = int.Parse(rgmatch.Groups["skill"].Value);
 
                 DoRetainerGatherAnalysis(role, skill);
+            }
+            else if (CraftSourceRegex.Match(instr) is var csmatch && csmatch.Success)
+            {
+                string role = csmatch.Groups["role"].Value;
+                int levelmin = int.Parse(csmatch.Groups["levelmin"].Value);
+                int levelmax = int.Parse(csmatch.Groups["levelmax"].Value);
+
+                DoCraftSourceAnalysis(role, levelmin, levelmax);
             }
             else
             {
@@ -367,6 +377,10 @@ public static class Prompt
 
     public static void DoItemAnalysis(IEnumerable<SaintCoinach.Xiv.Item> items)
     {
+        // Let's just init some stuff . . .
+        Commerce.GenerateMarketables();
+        Api.InitCherenkov();
+
         foreach (var item in items)
         {
             Dbg.Inf("");
@@ -390,6 +404,16 @@ public static class Prompt
             }
 
             Dbg.Inf("");
+
+            if (Commerce.SellersForItem(item.Key).Any())
+            {
+                Dbg.Inf("Sellers:");
+                foreach (var seller in Commerce.SellersForItem(item.Key))
+                {
+                    Dbg.Inf($"  {seller.ToZifaString()}");
+                }
+                Dbg.Inf("");
+            }
         }
     }
 
@@ -557,6 +581,149 @@ public static class Prompt
         foreach (var result in results.OrderBy(mi => mi.profit))
         {
             Dbg.Inf(result.text);
+        }
+    }
+
+    private static HashSet<SaintCoinach.Xiv.Recipe> standardRecipes;
+    public static void DoCraftSourceAnalysis(string role, int minlevel, int maxlevel)
+    {
+        if (standardRecipes == null)
+        {
+            // init the list of standard recipes
+            standardRecipes = new HashSet<SaintCoinach.Xiv.Recipe>();
+            foreach (var recipeBank in Db.Realm.GameData.GetSheet("RecipeNotebookList"))
+            {
+                if (recipeBank.Key >= 1000)
+                    continue;
+
+                for (int i = 0; true; ++i)
+                {
+                    var recipe = (SaintCoinach.Xiv.Recipe)recipeBank[$"Recipe[{i}]"];
+
+                    if (recipe == null)
+                    {
+                        break;
+                    }
+
+                    standardRecipes.Add(recipe);
+                }
+            }
+        }
+
+        var items = new Dictionary<SaintCoinach.Xiv.Item, int>();
+        foreach (var recipe in standardRecipes)
+        {
+            var result = recipe.ResultItem;
+            int resultId = result.Key;
+            
+            if (resultId == 0)
+            {
+                continue;
+            }
+
+            if (!result.IsMarketable())
+            {
+                continue;
+            }
+            
+            // filter out ixal
+            if (recipe.RequiredItem.Key != 0)
+            {
+                continue;
+            }
+
+            string className = recipe.ClassJob.Name;
+            int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
+
+            if (recipe.ClassJob.Name != role)
+            {
+                continue;
+            }
+
+            if (classLevel < minlevel || classLevel > maxlevel)
+            {
+                continue;
+            }
+
+            foreach (var ingredient in recipe.Ingredients)
+            {
+                if (!items.ContainsKey(ingredient.Item))
+                {
+                    items[ingredient.Item] = 0;
+                }
+
+                items[ingredient.Item] = items[ingredient.Item] + ingredient.Count;
+            }
+        }
+
+        {
+            string result = "Market-procured:\n";
+            Func<SaintCoinach.Xiv.Item, int, float, string> formatter = (item, count, gil) => { if (gil > 0) return $"  {item.Name} x{count} (~{gil:F0}g ea)\n"; else return $"  {item.Name} x{count}\n"; };
+
+            var remaining = new HashSet<SaintCoinach.Xiv.Item>();
+
+            foreach (var itemcombo in items.ProgressBar())
+            {
+                // First filter out the market purchases
+
+                float value = Commerce.ValueBuy(itemcombo.Key.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out var source);
+                if (source == "market")
+                {
+                    result += formatter(itemcombo.Key, itemcombo.Value, value);
+                }
+                else
+                {
+                    remaining.Add(itemcombo.Key);
+                }
+            }
+
+            while (remaining.Count > 0)
+            {
+                var npcCounts = new Dictionary<SaintCoinach.Xiv.ENpc, int>();
+                foreach (var item in remaining)
+                {
+                    foreach (var npc in Commerce.SellersForItem(item.Key))
+                    {
+                        if (!npcCounts.ContainsKey(npc))
+                        {
+                            npcCounts[npc] = 0;
+                        }
+
+                        npcCounts[npc] = npcCounts[npc] + 1;
+                    }
+                }
+
+                if (npcCounts.Count == 0)
+                {
+                    result += "\nCan't be found:\n";
+                    foreach (var item in remaining)
+                    {
+                        result += formatter(item, items[item], -1);
+                    }
+                    break;
+                }
+
+                var bestNpc = npcCounts.MaxBy(kv => kv.Value * 100000 + Commerce.ItemCountInShop(kv.Key)).Key;
+                result += $"\n{bestNpc.ToZifaString()}:\n";
+
+                // Grab things
+                var newRemaining = new HashSet<SaintCoinach.Xiv.Item>();
+                foreach (var item in remaining)
+                {
+                    if (Commerce.SellersForItem(item.Key).Contains(bestNpc))
+                    {
+                        result += formatter(item, items[item], -1);
+                    }
+                    else
+                    {
+                        newRemaining.Add(item);
+                    }
+                }
+
+                remaining = newRemaining;
+            }
+
+            Dbg.Inf(result);
         }
     }
 }

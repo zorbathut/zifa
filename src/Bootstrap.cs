@@ -56,7 +56,7 @@ public static class Bootstrap
         }
 
         //DoGCScripAnalysis();
-        if (true)
+        if (false)
             DoRecipeAnalysis(new CraftingInfo[] {
                 new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 36, maxlevel = 40, craftsmanship = 189, control = 189 },
                 new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 108, control = 115 },
@@ -281,7 +281,6 @@ public static class Bootstrap
                 Dbg.Inf(result.evaluator(Market.Latency.Standard).Item2);
             }
         }
-        
     }
 
     public static void DoCollectibleCombinationMath(CollectibleCombination[] combos)

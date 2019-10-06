@@ -11,7 +11,7 @@ public static class Api
     private static Cherenkov.Session s_Cherenkov;
     private static TimeSpan s_CherenkovInitTime = new TimeSpan();
 
-    private static void InitCherenkov()
+    public static void InitCherenkov()
     {
         if (s_Cherenkov == null)
         {
