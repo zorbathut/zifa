@@ -208,8 +208,7 @@ public static class Commerce
     private static Dictionary<SaintCoinach.Xiv.ENpc, int> npcToItemCount;
     private static string[] blacklistedMerchants = new string[]
     {
-        "Kojin material supplier",
-        "merchant & mender",
+        
     };
 
     private static void ConsumeData(SaintCoinach.Xiv.GilShop shop, Dictionary<int, List<SaintCoinach.Xiv.ENpc>> marketablesTemp, SaintCoinach.Xiv.ENpc npc)
@@ -252,10 +251,37 @@ public static class Commerce
                 gsi.Add(shopItem);
             }
 
+            var housingEmployables = new HashSet<int>();
+            foreach (var row in Db.Realm.GameData.GetSheet("HousingEmploymentNpcList"))
+            {
+                var sourceRow = row.SourceRow as SaintCoinach.Ex.Variant2.RelationalDataRow;
+                foreach (var subrow in sourceRow.SubRows)
+                {
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        var employee = subrow[SaintCoinach.Xiv.XivRow.BuildColumnName("ENpcBase", i)] as SaintCoinach.Xiv.ENpcBase;
+                        if (employee != null)
+                        {
+                            housingEmployables.Add(employee.Key);
+                        }
+                    }
+                }
+            }
+
             // TAKE 2
             var marketablesTemp = new Dictionary<int, List<SaintCoinach.Xiv.ENpc>>();
             foreach (var npc in Db.Realm.GameData.ENpcs.ProgressBar())
             {
+                if (housingEmployables.Contains(npc.Key))
+                {
+                    continue;
+                }
+
+                if (blacklistedMerchants.Any(kst => npc.Singular.ToString().Contains(kst)))
+                {
+                    continue;
+                }
+
                 foreach (var data in npc.Base.AssignedData)
                 {
                     if (data is SaintCoinach.Xiv.GilShop)
@@ -304,7 +330,7 @@ public static class Commerce
 
     public static IEnumerable<SaintCoinach.Xiv.ENpc> SellersForItem(int itemId)
     {
-        return itemToNPC[itemId];
+        return itemToNPC.ContainsKey(itemId) ? itemToNPC[itemId] : Enumerable.Empty<SaintCoinach.Xiv.ENpc>();
     }
 
     public static int ItemCountInShop(SaintCoinach.Xiv.ENpc seller)

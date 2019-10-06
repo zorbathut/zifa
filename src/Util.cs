@@ -144,10 +144,14 @@ public static class Util
         }  
     }
 
-    public static IEnumerable<T> ProgressBar<T>(this IEnumerable<T> input)
+    public static IEnumerable<T> ProgressBar<T>(this IEnumerable<T> input, bool shuffle = true)
     {
         var values = input.ToArray();
-        values.Shuffle();
+
+        if (shuffle)
+        {
+            values.Shuffle();
+        }
 
         var startTime = DateTimeOffset.Now;
         var cherenkovInitAlreadyTaken = Api.InitCherenkovTime();
