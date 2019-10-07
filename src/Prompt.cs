@@ -658,7 +658,18 @@ public static class Prompt
 
                 items[ingredient.Item] = items[ingredient.Item] + ingredient.Count;
             }
+
+            // And also, decrement our results!
+            if (!items.ContainsKey(recipe.ResultItem))
+            {
+                items[recipe.ResultItem] = 0;
+            }
+
+            items[recipe.ResultItem] = items[recipe.ResultItem] - recipe.ResultCount;
         }
+
+        // Strip out negatives
+        items = items.Where(kvp => kvp.Value > 0).ToDictionary();
 
         {
             string result = "Market-procured:\n";
