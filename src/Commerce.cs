@@ -181,7 +181,7 @@ public static class Commerce
         {
             // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
             // Look for errors.
-            float vendorprice = Math.Min(bestprice, Db.Item(id).Ask);
+            float vendorprice = Db.Item(id).Ask;
             if (vendorprice > 0 && (float.IsNaN(bestprice) || vendorprice <= bestprice))
             {
                 bestprice = vendorprice;
