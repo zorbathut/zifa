@@ -565,16 +565,18 @@ public static class Prompt
                 quantity = normal.AsInt32("Quantity[0]");
             }
 
+            int throughput = quantity * 4; // penalize things that don't have enough daily sales
+
             float profit = 0;
             if (items[0].CanBeHq)
             {
                 // 20% HQ; vague estimate
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity * 0.2f, Market.Latency.Standard) * quantity * 0.2f;
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity * 0.8f, Market.Latency.Standard) * quantity * 0.8f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput * 0.2f, Market.Latency.Standard) * quantity * 0.2f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput * 0.8f, Market.Latency.Standard) * quantity * 0.8f;
             }
             else
             {
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, quantity, Market.Latency.Standard) * quantity;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput, Market.Latency.Standard) * quantity;
             }
 
             results.Add(new MarketInfo() { profit = profit, text = $"{profit}: {quantity}x {items[0].Name}" });
