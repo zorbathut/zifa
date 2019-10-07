@@ -385,34 +385,57 @@ public static class Prompt
         {
             Dbg.Inf("");
             Dbg.Inf($"{item.Name}:");
-            Dbg.Inf($"  Market immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market immediate HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market fastsell HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market sales per day: {Commerce.MarketSalesPerDay(item.Key, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99, Market.Latency.Immediate)}");
-            Dbg.Inf($"  Market profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, item.StackSize, Market.Latency.Immediate)}");
+            Dbg.Inf($"  Compiled market data:");
+            Dbg.Inf($"    Immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Immediate HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Fastsell HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Sales per day: {Commerce.MarketSalesPerDay(item.Key, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, item.StackSize, Market.Latency.Immediate)}");
+            Dbg.Inf("");
 
+            bool recipeHeadered = false;
             foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
             {
                 if (recipe.ResultItem == item)
                 {
+                    if (!recipeHeadered)
+                    {
+                        Dbg.Inf("  Crafting:");
+                        recipeHeadered = true;
+                    }
+                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate).Item2.Replace("\n", "\n  "));
                     Dbg.Inf("");
-                    Dbg.Inf(Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate).Item2);
                 }
             }
 
-            Dbg.Inf("");
-
             if (Commerce.SellersForItem(item.Key).Any())
             {
-                Dbg.Inf("Sellers:");
+                Dbg.Inf("  Vendors:");
                 foreach (var seller in Commerce.SellersForItem(item.Key))
                 {
-                    Dbg.Inf($"  {seller.ToZifaString()}");
+                    Dbg.Inf($"    {seller.ToZifaString()}");
+                }
+                Dbg.Inf("");
+            }
+
+            if (item.IsMarketable())
+            {
+                Dbg.Inf("  Pricing:");
+                foreach (var market in Market.Prices(item.Key, Market.Latency.Immediate).entries)
+                {
+                    Dbg.Inf($"    {market.sellPrice}: {market.stack}x {(market.hq ? "HQ" : "")}");
+                }
+
+                Dbg.Inf("");
+                Dbg.Inf("  History:");
+                foreach (var market in Market.History(item.Key, Market.Latency.Immediate).history)
+                {
+                    Dbg.Inf($"    {market.sellPrice}: {market.stack}x {(market.hq ? "HQ" : "")} {(DateTimeOffset.Now - DateTimeOffset.FromUnixTimeMilliseconds(market.buyRealDate)).TotalDays:F2}d");
                 }
                 Dbg.Inf("");
             }
