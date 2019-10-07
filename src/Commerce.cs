@@ -177,7 +177,7 @@ public static class Commerce
 
         var item = Db.Item(id);
 
-        if (CanBuyFromMarket(id))
+        if (CanBuyFromVendor(id))
         {
             // "Can it be bought in a gil shop" seems to be the best way to handle this, I think.
             // Look for errors.
@@ -199,7 +199,7 @@ public static class Commerce
     }
 
     
-    public static bool CanBuyFromMarket(int id)
+    public static bool CanBuyFromVendor(int id)
     {
         return Marketables().Contains(id);
     }

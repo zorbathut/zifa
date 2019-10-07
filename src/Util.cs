@@ -214,6 +214,11 @@ public static class Util
             return default(V);
         }
     }
+
+    public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> input)
+    {
+        return input.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
 }
 
 public static class EnumUtil
