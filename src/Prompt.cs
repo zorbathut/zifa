@@ -592,8 +592,8 @@ public static class Prompt
             }
             else if (gatherer == GatherType.Warrior)
             {
-                midthresh = parameter.AsInt32("Gathering{DoW}[0]");
-                highthresh = parameter.AsInt32("Gathering{DoW}[1]");
+                midthresh = parameter.AsInt32("ItemLevel{DoW}[0]");
+                highthresh = parameter.AsInt32("ItemLevel{DoW}[1]");
             }
             else
             {
