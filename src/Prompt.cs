@@ -139,16 +139,21 @@ public static class Prompt
 
     public static void DoPurchasableAnalysis(int itemId, int amount)
     {
-        foreach (var result in PurchasableAnalysisWorker(itemId, amount).OrderBy(item => item.gps))
+        foreach (var result in PurchasableAnalysisWorker(itemId, amount, true).OrderBy(item => item.gps))
         {
             Dbg.Inf($"{result.gps:F2}: {result.name}");
         }
     }
 
-    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId, float amountAcquired)
+    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId, float amountAcquired, bool pb = false)
     {
         var inspected = new HashSet<int>();
-        foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
+        IEnumerable<SaintCoinach.Xiv.SpecialShop> items = Db.GetSheet<SaintCoinach.Xiv.SpecialShop>();
+        if (pb)
+        {
+            items = items.ProgressBar();
+        }
+        foreach (var shop in items)
         {
             foreach (var listing in shop.Items)
             {
