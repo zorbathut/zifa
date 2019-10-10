@@ -14,7 +14,7 @@ public static class Prompt
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex CraftSourceRegex = new Regex("^craftsource (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
@@ -32,7 +32,7 @@ public static class Prompt
             Dbg.Inf("  rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
             Dbg.Inf("  vendormarket - finds the best items to be purchased from vendors and marketed");
             Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
-            Dbg.Inf("  retainergather {dow/btn/min} {skill} - calculates the best items for retainers to gather");
+            Dbg.Inf("  retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
             Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
             Dbg.Inf("");
 
@@ -528,13 +528,20 @@ public static class Prompt
         }
     }
 
+    enum GatherType
+    {
+        Warrior,
+        Gatherer,
+        Fisher,
+    }
     public static void DoRetainerGatherAnalysis(string role, int skill)
     {
-        bool gatherer = true;
+        GatherType gatherer = GatherType.Gatherer;
 
         if (role == "min") role = "miner";
         if (role == "btn") role = "botanist";
-        if (role == "dow") { role = "rogue"; gatherer = false; } // close enough
+        if (role == "dow") { role = "rogue"; gatherer = GatherType.Warrior; } // close enough
+        if (role == "fsh") { role = "fisher"; gatherer = GatherType.Fisher; }
 
         var results = new List<MarketInfo>();
         foreach (var task in Db.GetSheet<SaintCoinach.Xiv.RetainerTask>().ProgressBar())
@@ -544,12 +551,17 @@ public static class Prompt
                 continue;
             }
 
-            if (gatherer && task.RequiredGathering > skill)
+            if (gatherer == GatherType.Gatherer && task.RequiredGathering > skill)
             {
                 continue;
             }
 
-            if (!gatherer && task.RequiredItemLevel > skill)
+            if (gatherer == GatherType.Warrior && task.RequiredItemLevel > skill)
+            {
+                continue;
+            }
+
+            if (gatherer == GatherType.Fisher && task.RequiredGathering > skill)
             {
                 continue;
             }
@@ -565,8 +577,24 @@ public static class Prompt
             // Gotta figure out how many we expect to get.
             var parameter = task["RetainerTaskParameter"] as SaintCoinach.Xiv.XivRow;
             
-            var midthresh = gatherer ? parameter.AsInt32("Gathering{DoL}[0]") : parameter.AsInt32("ItemLevel{DoW}[0]");
-            var highthresh = gatherer ? parameter.AsInt32("Gathering{DoL}[1]") : parameter.AsInt32("ItemLevel{DoW}[1]");
+            int midthresh;
+            int highthresh;
+
+            if (gatherer == GatherType.Fisher)
+            {
+                midthresh = parameter.AsInt32("Gathering{FSH}[0]");
+                highthresh = parameter.AsInt32("Gathering{FSH}[1]");
+            }
+            else if (gatherer == GatherType.Warrior)
+            {
+                midthresh = parameter.AsInt32("Gathering{DoW}[0]");
+                highthresh = parameter.AsInt32("Gathering{DoW}[1]");
+            }
+            else
+            {
+                midthresh = parameter.AsInt32("Gathering{DoL}[0]");
+                highthresh = parameter.AsInt32("Gathering{DoL}[1]");
+            }
 
             var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
             if (normal == null)
