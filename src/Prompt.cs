@@ -644,6 +644,18 @@ public static class Prompt
         }
     }
 
+    private static string CraftSourceFormatter(SaintCoinach.Xiv.Item item, int count, float gil)
+    {
+        if (gil > 0)
+        {
+            return $"  {item.Name} x{count} (~{gil:F0}g ea)\n";
+        }
+        else
+        {
+            return $"  {item.Name} x{count}\n";
+        }
+    }
+
     private static HashSet<SaintCoinach.Xiv.Recipe> standardRecipes;
     public static void DoCraftSourceAnalysis(string role, int minlevel, int maxlevel)
     {
@@ -729,7 +741,6 @@ public static class Prompt
 
         {
             string result = "Market-procured:\n";
-            Func<SaintCoinach.Xiv.Item, int, float, string> formatter = (item, count, gil) => { if (gil > 0) return $"  {item.Name} x{count} (~{gil:F0}g ea)\n"; else return $"  {item.Name} x{count}\n"; };
 
             var remaining = new HashSet<SaintCoinach.Xiv.Item>();
 
@@ -740,11 +751,30 @@ public static class Prompt
                 float value = Commerce.ValueBuy(itemcombo.Key.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out var source);
                 if (source == "market")
                 {
-                    result += formatter(itemcombo.Key, itemcombo.Value, value);
+                    result += CraftSourceFormatter(itemcombo.Key, itemcombo.Value, value);
                 }
                 else
                 {
                     remaining.Add(itemcombo.Key);
+                }
+            }
+
+            while (true)
+            {
+                bool found = false;
+                foreach (var item in remaining)
+                {
+                    if (Commerce.SellersForItem(item.Key).Count() == 1)
+                    {
+                        remaining = SubsumeItems(remaining, items, Commerce.SellersForItem(item.Key).First(), ref result);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    break;
                 }
             }
 
@@ -769,32 +799,38 @@ public static class Prompt
                     result += "\nCan't be found:\n";
                     foreach (var item in remaining)
                     {
-                        result += formatter(item, items[item], -1);
+                        result += CraftSourceFormatter(item, items[item], -1);
                     }
                     break;
                 }
 
                 var bestNpc = npcCounts.MaxBy(kv => kv.Value * 100000 + Commerce.ItemCountInShop(kv.Key)).Key;
-                result += $"\n{bestNpc.ToZifaString()}:\n";
 
                 // Grab things
-                var newRemaining = new HashSet<SaintCoinach.Xiv.Item>();
-                foreach (var item in remaining.OrderBy(item => item.Name))
-                {
-                    if (Commerce.SellersForItem(item.Key).Contains(bestNpc))
-                    {
-                        result += formatter(item, items[item], -1);
-                    }
-                    else
-                    {
-                        newRemaining.Add(item);
-                    }
-                }
-
-                remaining = newRemaining;
+                remaining = SubsumeItems(remaining, items, bestNpc, ref result);
             }
 
             Dbg.Inf(result);
         }
+    }
+
+    private static HashSet<SaintCoinach.Xiv.Item> SubsumeItems(HashSet<SaintCoinach.Xiv.Item> remaining, Dictionary<SaintCoinach.Xiv.Item, int> items, SaintCoinach.Xiv.ENpc npc, ref string result)
+    {
+        result += $"\n{npc.ToZifaString()}:\n";
+
+        var newRemaining = new HashSet<SaintCoinach.Xiv.Item>();
+        foreach (var item in remaining.OrderBy(item => item.Name))
+        {
+            if (Commerce.SellersForItem(item.Key).Contains(npc))
+            {
+                result += CraftSourceFormatter(item, items[item], -1);
+            }
+            else
+            {
+                newRemaining.Add(item);
+            }
+        }
+
+        return newRemaining;
     }
 }
