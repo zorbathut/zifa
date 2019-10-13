@@ -683,40 +683,42 @@ public static class Prompt
         }
 
         var items = new Dictionary<SaintCoinach.Xiv.Item, int>();
-        foreach (var recipe in standardRecipes)
+        foreach (var recipe in standardRecipes.Where(recipe => {
+                var result = recipe.ResultItem;
+                int resultId = result.Key;
+            
+                if (resultId == 0)
+                {
+                    return false;
+                }
+
+                if (!result.IsMarketable())
+                {
+                    return false;
+                }
+            
+                // filter out ixal
+                if (recipe.RequiredItem.Key != 0)
+                {
+                    return false;
+                }
+
+                string className = recipe.ClassJob.Name;
+                int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
+
+                if (recipe.ClassJob.Name != role)
+                {
+                    return false;
+                }
+
+                if (classLevel < minlevel || classLevel > maxlevel)
+                {
+                    return false;
+                }
+
+                return true;
+            }).ProgressBar())
         {
-            var result = recipe.ResultItem;
-            int resultId = result.Key;
-            
-            if (resultId == 0)
-            {
-                continue;
-            }
-
-            if (!result.IsMarketable())
-            {
-                continue;
-            }
-            
-            // filter out ixal
-            if (recipe.RequiredItem.Key != 0)
-            {
-                continue;
-            }
-
-            string className = recipe.ClassJob.Name;
-            int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
-
-            if (recipe.ClassJob.Name != role)
-            {
-                continue;
-            }
-
-            if (classLevel < minlevel || classLevel > maxlevel)
-            {
-                continue;
-            }
-
             foreach (var ingredient in recipe.Ingredients)
             {
                 if (!items.ContainsKey(ingredient.Item))
@@ -727,13 +729,24 @@ public static class Prompt
                 items[ingredient.Item] = items[ingredient.Item] + ingredient.Count;
             }
 
-            // And also, decrement our results!
-            if (!items.ContainsKey(recipe.ResultItem))
+            bool careAboutHQ = false;
+            if (recipe.ResultItem.CanBeHq)
             {
-                items[recipe.ResultItem] = 0;
-            }
+                float basePrice = Commerce.ValueSell(recipe.ResultItem.Key, false, Market.Latency.Standard);
+                float hqPrice = Commerce.ValueSell(recipe.ResultItem.Key, true, Market.Latency.Standard);
 
-            items[recipe.ResultItem] = items[recipe.ResultItem] - recipe.ResultCount;
+                careAboutHQ = !(hqPrice - 100 <= basePrice || hqPrice / 1.2f <= basePrice);
+            }
+            
+            if (careAboutHQ)
+            {
+                if (!items.ContainsKey(recipe.ResultItem))
+                {
+                    items[recipe.ResultItem] = 0;
+                }
+
+                items[recipe.ResultItem] = items[recipe.ResultItem] - recipe.ResultCount;
+            }
         }
 
         // Strip out negatives
@@ -748,7 +761,7 @@ public static class Prompt
             {
                 // First filter out the market purchases
 
-                float value = Commerce.ValueBuy(itemcombo.Key.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out var source);
+                float value = Commerce.ValueBuy(itemcombo.Key.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate, out var source);
                 if (source == "market")
                 {
                     result += CraftSourceFormatter(itemcombo.Key, itemcombo.Value, value);
