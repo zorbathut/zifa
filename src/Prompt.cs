@@ -643,7 +643,7 @@ public static class Prompt
                 profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput, Market.Latency.Standard) * quantity;
             }
 
-            results.Add(new MarketInfo() { profit = profit, text = $"{profit}: {quantity}x {items[0].Name}" });
+            results.Add(new MarketInfo() { profit = profit, text = $"{profit}: {quantity}x {items[0].Name} (lv{task.RetainerLevel})" });
         }
 
         foreach (var result in results.OrderBy(mi => mi.profit))
