@@ -35,6 +35,8 @@ public static class Prompt
             Dbg.Inf("  retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
             Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
             Dbg.Inf("");
+            Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
+            Dbg.Inf("");
 
             string instr = Console.ReadLine();
             if (PointRegex.Match(instr) is var pmatch && pmatch.Success)
@@ -129,6 +131,12 @@ public static class Prompt
                 int levelmax = int.Parse(csmatch.Groups["levelmax"].Value);
 
                 DoCraftSourceAnalysis(role, levelmin, levelmax);
+            }
+            else if (instr == "retainergathercache")
+            {
+                DoRetainerGatherAnalysis("dow", 420);
+                DoRetainerGatherAnalysis("btn", 10000);
+                DoRetainerGatherAnalysis("min", 709);
             }
             else
             {
