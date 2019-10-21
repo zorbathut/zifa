@@ -55,29 +55,6 @@ public static class Bootstrap
             parser.Finish();
         }
 
-        //DoGCScripAnalysis();
-        if (false)
-            DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 36, maxlevel = 40, craftsmanship = 189, control = 189 },
-                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 19, maxlevel = 22, craftsmanship = 108, control = 115 },
-                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 119, control = 122 },
-                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 18, maxlevel = 21, craftsmanship = 124, control = 125 },
-                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 23, craftsmanship = 112, control = 117 },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 70, maxlevel = 75, craftsmanship = 1489, control = 1304 },
-                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 17, maxlevel = 20, craftsmanship = 106, control = 116 },
-                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 38, craftsmanship = 183, control = 186 },
-            }, SortMethod.Profit);
-        if (false)
-            DoRecipeAnalysis(new CraftingInfo[] {
-                new CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-                new CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = int.MaxValue, control = int.MaxValue },
-            }, SortMethod.Profit);
         //DoRecipeAnalysis("goldsmith", 1, 0, 5, SortMethod.Order);
         //CraftingCalculator.Process();
         /*
@@ -134,7 +111,7 @@ public static class Bootstrap
     }
 
     readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
-    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency)
+    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
@@ -150,11 +127,23 @@ public static class Bootstrap
 
         float profit = expectedRevenue - tcost;
 
-        int craftQuantity = (canQuickSynth && !hq) ? 99 : 3;
+        // Can't bulk-produce HQ, unfortunately
+        bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
+
+        // This is the amount that we're allowed to sell per day
+        float maxSellPerDay = Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, 99));
+        if (!allowBulkProduction)
+        {
+            maxSellPerDay = Math.Min(maxSellPerDay, 3);
+        }
+
+        if (!includeSolo && maxSellPerDay <= 3)
+        {
+            return new Tuple<float, string>(float.MinValue, "{REMOVED}");
+        }
         
         // Adjust profit
-        // HQing things is hard, assume we're willing to sell at most ten per day
-        float profitTimeAdjusted = (profit / recipe.ResultCount) * Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, craftQuantity));
+        float profitTimeAdjusted = (profit / recipe.ResultCount) * maxSellPerDay;
         
         readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
 
@@ -172,7 +161,7 @@ public static class Bootstrap
         public float estimate;
     }
 
-    public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod)
+    public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
     {
         var evaluators = new List<Func<Market.Latency, Tuple<float, string>>>();
 
@@ -233,10 +222,10 @@ public static class Bootstrap
 
             if (canHq && result.CanBeHq)
             {
-                evaluators.Add(latency => EvaluateItem(recipe, true, false, latency));
+                evaluators.Add(latency => EvaluateItem(recipe, true, false, latency, includeSolo, includeBulk));
             }
 
-            evaluators.Add(latency => EvaluateItem(recipe, false, canQuickSynth, latency));
+            evaluators.Add(latency => EvaluateItem(recipe, false, canQuickSynth, latency, includeSolo, includeBulk));
         }
 
         if (sortMethod == SortMethod.Order)

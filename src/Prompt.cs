@@ -16,6 +16,8 @@ public static class Prompt
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex CraftSourceRegex = new Regex("^craftsource (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RecipeAnalysisMax = new Regex("^recipeanalysismax (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -36,6 +38,8 @@ public static class Prompt
             Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
             Dbg.Inf("");
             Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
+            Dbg.Inf("  recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
+            Dbg.Inf("  recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
             Dbg.Inf("");
 
             string instr = Console.ReadLine();
@@ -137,6 +141,32 @@ public static class Prompt
                 DoRetainerGatherAnalysis("dow", 420);
                 DoRetainerGatherAnalysis("btn", 10000);
                 DoRetainerGatherAnalysis("min", 709);
+            }
+            else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
+            {
+                Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                    new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 37, maxlevel = 41, craftsmanship = 189, control = 189 },
+                    new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 25, maxlevel = 29, craftsmanship = 152, control = 156 },
+                    new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 139, control = 139 },
+                    new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 23, maxlevel = 27, craftsmanship = 144, control = 143 },
+                    new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 24, craftsmanship = 115, control = 124 },
+                    new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 72, maxlevel = 76, craftsmanship = 1489, control = 1304 },
+                    new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 137, control = 124 },
+                    new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
+                }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
+            }
+            else if (RecipeAnalysisMax.Match(instr) is var raxmatch && raxmatch.Success)
+            {
+                Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                    new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                }, Bootstrap.SortMethod.Profit, bool.Parse(raxmatch.Groups["solo"].Value), bool.Parse(raxmatch.Groups["bulk"].Value));
             }
             else
             {
@@ -421,7 +451,7 @@ public static class Prompt
                         Dbg.Inf("  Crafting:");
                         recipeHeadered = true;
                     }
-                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate).Item2.Replace("\n", "\n  "));
+                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true).Item2.Replace("\n", "\n  "));
                     Dbg.Inf("");
                 }
             }
@@ -494,7 +524,10 @@ public static class Prompt
                     {
                         if (reward.Item.Key != 0)
                         {
-                            rewards.Add(reward);
+                            if (!rewards.Any(rhs => rhs.Item == reward.Item && rhs.Counts[0] == reward.Counts[0]))
+                            {
+                                rewards.Add(reward);
+                            }
                         }
                     }
                 }
@@ -502,7 +535,7 @@ public static class Prompt
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        foreach (var item in rewards.Select(reward => Tuple.Create(reward.Item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.Item.Key, false, Market.Latency.Standard), reward.Item.Key, reward.Counts[0], Market.Latency.Standard) * reward.Counts[0])).OrderByDescending(tup => tup.Item2))
+        foreach (var item in rewards.ProgressBar().Select(reward => Tuple.Create(reward.Item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.Item.Key, false, Market.Latency.Standard), reward.Item.Key, reward.Counts[0], Market.Latency.Standard) * reward.Counts[0])).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
