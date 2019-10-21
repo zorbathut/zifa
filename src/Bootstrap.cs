@@ -111,7 +111,7 @@ public static class Bootstrap
     }
 
     readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
-    public static Tuple<float, string> EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
+    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
@@ -139,7 +139,7 @@ public static class Bootstrap
 
         if (!includeSolo && maxSellPerDay <= 3)
         {
-            return new Tuple<float, string>(float.MinValue, "{REMOVED}");
+            return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
         }
         
         // Adjust profit
@@ -152,18 +152,12 @@ public static class Bootstrap
             readable = readable.Replace("\n", "    \n");
         }
 
-        return new Tuple<float, string>(profitTimeAdjusted, readable);
-    }
-
-    private struct RecipeData
-    {
-        public Func<Market.Latency, Tuple<float, string>> evaluator;
-        public float estimate;
+        return new Util.Twopass.Result() { value = profitTimeAdjusted, display = readable };
     }
 
     public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
     {
-        var evaluators = new List<Func<Market.Latency, Tuple<float, string>>>();
+        var evaluators = new List<Func<bool, Util.Twopass.Result>>();
 
         foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
         {
@@ -222,53 +216,23 @@ public static class Bootstrap
 
             if (canHq && result.CanBeHq)
             {
-                evaluators.Add(latency => EvaluateItem(recipe, true, false, latency, includeSolo, includeBulk));
+                evaluators.Add(immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk));
             }
 
-            evaluators.Add(latency => EvaluateItem(recipe, false, canQuickSynth, latency, includeSolo, includeBulk));
+            evaluators.Add(immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk));
         }
 
         if (sortMethod == SortMethod.Order)
         {
             // ToArray forces it to be evaluated before printing so we don't interlace with debug output
-            foreach (var output in evaluators.ProgressBar().Select(item =>  item(Market.Latency.Standard).Item2).ToArray())
+            foreach (var output in evaluators.ProgressBar().Select(item =>  item(false).display).ToArray())
             {
                 Dbg.Inf(output);
             }
         }
         else if (sortMethod == SortMethod.Profit)
         {
-            var recipeInfo = new List<RecipeData>();
-
-            foreach (int i in Enumerable.Range(0, evaluators.Count).ProgressBar())
-            {
-                var result = evaluators[i](Market.Latency.Standard);
-                recipeInfo.Add(new RecipeData() {evaluator = evaluators[i], estimate = result.Item1});
-            }
-
-            recipeInfo = recipeInfo.OrderBy(x => x.estimate).ToList();
-
-            var goodRecipes = new List<RecipeData>();
-
-            int desiredCount = 20;
-            while (recipeInfo.Count > 0 && (goodRecipes.Count < desiredCount || goodRecipes[goodRecipes.Count - desiredCount].estimate < recipeInfo[recipeInfo.Count - 1].estimate))
-            {
-                Dbg.Inf($"Immediate-testing; at {goodRecipes.Count} recipes");
-
-                var process = recipeInfo[recipeInfo.Count - 1];
-                recipeInfo.RemoveAt(recipeInfo.Count - 1);
-
-                process.estimate = process.evaluator(Market.Latency.Immediate).Item1;
-                goodRecipes.Add(process);
-
-                goodRecipes = goodRecipes.OrderBy(x => x.estimate).ToList();
-            }
-
-            foreach (var result in goodRecipes)
-            {
-                // Standard is safe here because we're already cached
-                Dbg.Inf(result.evaluator(Market.Latency.Standard).Item2);
-            }
+            Util.Twopass.Process(evaluators);
         }
     }
 

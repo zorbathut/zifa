@@ -232,6 +232,56 @@ public static class Util
     {
         return input.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
+
+
+    public static class Twopass
+    {
+        private struct Item
+        {
+            public Func<bool, Result> evaluator;
+            public Result result;
+        }
+
+        public struct Result
+        {
+            public float value;
+            public string display;
+        }
+
+        public static void Process(IEnumerable<Func<bool, Result>> evaluators)
+        {
+            var quickResults = new List<Item>();
+
+            foreach (var evaluator in evaluators.ProgressBar())
+            {
+                var result = evaluator(false);
+                quickResults.Add(new Item() {evaluator = evaluator, result = result});
+            }
+
+            quickResults = quickResults.OrderBy(x => x.result.value).ToList();
+
+            var goodResults = new List<Item>();
+
+            int desiredCount = 20;
+            while (quickResults.Count > 0 && (goodResults.Count < desiredCount || goodResults[goodResults.Count - desiredCount].result.value < quickResults[quickResults.Count - 1].result.value))
+            {
+                Dbg.Inf($"Immediate-testing; at {goodResults.Count} elements");
+
+                var process = quickResults[quickResults.Count - 1];
+                quickResults.RemoveAt(quickResults.Count - 1);
+
+                process.result = process.evaluator(true);
+                goodResults.Add(process);
+
+                goodResults = goodResults.OrderBy(x => x.result.value).ToList();
+            }
+
+            foreach (var result in goodResults)
+            {
+                Dbg.Inf(result.result.display);
+            }
+        }
+    }
 }
 
 public static class EnumUtil

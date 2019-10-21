@@ -138,9 +138,13 @@ public static class Prompt
             }
             else if (instr == "retainergathercache")
             {
-                DoRetainerGatherAnalysis("dow", 420);
-                DoRetainerGatherAnalysis("btn", 10000);
-                DoRetainerGatherAnalysis("min", 709);
+                // we do it twice just to get all the output dumped in one place after it's cached :V
+                for (int i = 0; i < 2; ++i)
+                {
+                    DoRetainerGatherAnalysis("dow", 420);
+                    DoRetainerGatherAnalysis("btn", 10000);
+                    DoRetainerGatherAnalysis("min", 709);
+                }
             }
             else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
             {
@@ -451,7 +455,7 @@ public static class Prompt
                         Dbg.Inf("  Crafting:");
                         recipeHeadered = true;
                     }
-                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true).Item2.Replace("\n", "\n  "));
+                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true).display.Replace("\n", "\n  "));
                     Dbg.Inf("");
                 }
             }
@@ -589,36 +593,48 @@ public static class Prompt
         if (role == "dow") { role = "rogue"; gatherer = GatherType.Warrior; } // close enough
         if (role == "fsh") { role = "fisher"; gatherer = GatherType.Fisher; }
 
-        var results = new List<MarketInfo>();
-        foreach (var task in Db.GetSheet<SaintCoinach.Xiv.RetainerTask>().ProgressBar())
+        IEnumerable<SaintCoinach.Xiv.RetainerTask> tasks = Db.GetSheet<SaintCoinach.Xiv.RetainerTask>();
+        tasks = tasks.Where(task =>
         {
             if (!task.ClassJobCategory.ClassJobs.Any(cj => cj.Name == role))
             {
-                continue;
+                return false;
             }
 
             if (gatherer == GatherType.Gatherer && task.RequiredGathering > skill)
             {
-                continue;
+                return false;
             }
 
             if (gatherer == GatherType.Warrior && task.RequiredItemLevel > skill)
             {
-                continue;
+                return false;
             }
 
             if (gatherer == GatherType.Fisher && task.RequiredGathering > skill)
             {
-                continue;
+                return false;
             }
 
             var items = task.Items.ToArray();
             if (items.Length != 1)
             {
-                continue;
+                return false;
             }
 
-            int itemId = items[0].Key;
+            var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
+            if (normal == null)
+            {
+                return false;
+            }
+
+            return true;
+        });
+
+        IEnumerable<Func<bool, Util.Twopass.Result>> processors = tasks.Select<SaintCoinach.Xiv.RetainerTask, Func<bool, Util.Twopass.Result>>(task => immediate =>
+        {
+            var item = task.Items.First();
+            int itemId = item.Key;
 
             // Gotta figure out how many we expect to get.
             var parameter = task["RetainerTaskParameter"] as SaintCoinach.Xiv.XivRow;
@@ -643,10 +659,6 @@ public static class Prompt
             }
 
             var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
-            if (normal == null)
-            {
-                continue;
-            }
 
             int quantity;
             if (highthresh <= skill)
@@ -664,25 +676,23 @@ public static class Prompt
 
             int throughput = quantity * 4; // penalize things that don't have enough daily sales
 
+            var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
             float profit = 0;
-            if (items[0].CanBeHq)
+            if (item.CanBeHq)
             {
                 // 20% HQ; vague estimate
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput * 0.2f, Market.Latency.Standard) * quantity * 0.2f;
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput * 0.8f, Market.Latency.Standard) * quantity * 0.8f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, latency), itemId, throughput * 0.2f, latency) * quantity * 0.2f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, latency), itemId, throughput * 0.8f, latency) * quantity * 0.8f;
             }
             else
             {
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard), itemId, throughput, Market.Latency.Standard) * quantity;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, latency), itemId, throughput, latency) * quantity;
             }
 
-            results.Add(new MarketInfo() { profit = profit, text = $"{profit}: {quantity}x {items[0].Name} (lv{task.RetainerLevel})" });
-        }
+            return new Util.Twopass.Result() { value = profit, display = $"{profit}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
+        });
 
-        foreach (var result in results.OrderBy(mi => mi.profit))
-        {
-            Dbg.Inf(result.text);
-        }
+        Util.Twopass.Process(processors);
     }
 
     private static string CraftSourceFormatter(SaintCoinach.Xiv.Item item, int count, float gil)
