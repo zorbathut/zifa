@@ -9,7 +9,7 @@ using System.Threading;
 public static class Api
 {
     private static Cherenkov.Session s_Cherenkov;
-    private static TimeSpan s_CherenkovInitTime = new TimeSpan();
+    private static TimeSpan s_InitTime = new TimeSpan();
 
     public static void InitCherenkov()
     {
@@ -24,13 +24,18 @@ public static class Api
             
             s_Cherenkov = new Cherenkov.Session();
 
-            s_CherenkovInitTime += DateTimeOffset.Now - start;
+            AddInitTime(DateTimeOffset.Now - start);
         }
     }
 
-    public static TimeSpan InitCherenkovTime()
+    public static TimeSpan InitTime()
     {
-        return s_CherenkovInitTime;
+        return s_InitTime;
+    }
+
+    public static void AddInitTime(TimeSpan time)
+    {
+        s_InitTime += time;
     }
 
     public static Cherenkov.Session.MarketHistoryResponse RetrieveHistory(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)

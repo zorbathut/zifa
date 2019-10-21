@@ -244,6 +244,7 @@ public static class Commerce
         if (itemToNPC == null)
         {
             Dbg.Inf("Generating marketables cache . . .");
+            var start = DateTimeOffset.Now;
 
             var gsi = new List<SaintCoinach.Xiv.GilShopItem>();
             foreach (var shopItem in Db.GetSheet2<SaintCoinach.Xiv.GilShopItem>())
@@ -317,6 +318,7 @@ public static class Commerce
                 }
             }
 
+            Api.AddInitTime(DateTimeOffset.Now - start);
             Dbg.Inf("Done");
         }
     }

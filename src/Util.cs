@@ -153,24 +153,37 @@ public static class Util
             values.Shuffle();
         }
 
-        var startTime = DateTimeOffset.Now;
-        var cherenkovInitAlreadyTaken = Api.InitCherenkovTime();
+        // in seconds
+        float accumulatedTime = 0;
+        float accumulatedItems = 0;
 
         DateTimeOffset lastShown = DateTimeOffset.Now;
 
         for (int i = 0; i < values.Length; ++i)
         {
+            TimeSpan cherenkovInitTaken = Api.InitTime();
+            var startTime = DateTimeOffset.Now;
+
+            yield return values[i];
+
+            var deltaTime = (DateTimeOffset.Now - startTime) + (cherenkovInitTaken - Api.InitTime());
+
+            // exponential falloff calculation; 50% every minute
+            var falloff = (float)Math.Pow(0.5f, deltaTime.TotalMinutes);
+
+            accumulatedTime *= falloff;
+            accumulatedItems *= falloff;
+
+            accumulatedTime += (float)deltaTime.TotalSeconds;
+            accumulatedItems += 1;
+
             if (i > 0 && (DateTimeOffset.Now - lastShown).TotalSeconds > 0.2f)
             {
-                var currentTime = DateTimeOffset.Now;
-                var perItemMs = (currentTime - startTime - Api.InitCherenkovTime() + cherenkovInitAlreadyTaken).TotalMilliseconds / i;
-                var remaining = TimeSpan.FromMilliseconds(perItemMs * (values.Length - i));
+                var remaining = (values.Length - i) * (accumulatedTime / accumulatedItems);
 
-                Dbg.Inf($"{i} / {values.Length} -- ETA {remaining.TotalMinutes:F2}m");
+                Dbg.Inf($"{i} / {values.Length} -- ETA {remaining / 60:F2}m");
                 lastShown = DateTimeOffset.Now;
             }
-            
-            yield return values[i];
         }
     }
 
