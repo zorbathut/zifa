@@ -191,23 +191,32 @@ public static class Prompt
         }
     }
 
+    private struct PurchasableOption
+    {
+        public string name;
+        public Func<bool, Util.Twopass.Result> evaluator;
+    }
     public static void DoPurchasableAnalysis(int itemId, int amount)
     {
-        foreach (var result in PurchasableAnalysisWorker(itemId, amount, true).OrderBy(item => item.gps))
+        var dedupOptions = new Dictionary<string, Func<bool, Util.Twopass.Result>>();
+        foreach (var item in PurchasableAnalysisWorker(itemId, amount))
         {
-            Dbg.Inf($"{result.gps:F2}: {result.name}");
+            if (!dedupOptions.ContainsKey(item.name))
+            {
+                dedupOptions[item.name] = item.evaluator;
+            }
         }
+
+        Util.Twopass.Process(dedupOptions.Values.Select<Func<bool, Util.Twopass.Result>, Func<bool, Util.Twopass.Result>>(evaluator => immediate =>
+        {
+            var result = evaluator(immediate);
+            return new Util.Twopass.Result() { value = result.value, display = $"{result.value:F2}: {result.display}" };
+        }), 10);
     }
 
-    public static IEnumerable<Bootstrap.Result> PurchasableAnalysisWorker(int itemId, float amountAcquired, bool pb = false)
+    private static IEnumerable<PurchasableOption> PurchasableAnalysisWorker(int itemId, float amountAcquired)
     {
-        var inspected = new HashSet<int>();
-        IEnumerable<SaintCoinach.Xiv.SpecialShop> items = Db.GetSheet<SaintCoinach.Xiv.SpecialShop>();
-        if (pb)
-        {
-            items = items.ProgressBar();
-        }
-        foreach (var shop in items)
+        foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
         {
             foreach (var listing in shop.Items)
             {
@@ -230,7 +239,7 @@ public static class Prompt
 
                 if (listing.Rewards.Count() > 1)
                 {
-                    yield return new Bootstrap.Result() { gps = 0, name = "TOO MANY RESULTS" };
+                    Dbg.Err("TOO MANY RESULTS");
                     continue;
                 }
 
@@ -251,9 +260,11 @@ public static class Prompt
 
                 // Always include this, because this is how we calculate vendor prices
                 {
-                    float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, Market.Latency.Standard) * reward.Count;
-                    float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, Market.Latency.Standard);
-                    yield return new Bootstrap.Result() { gps = valueAdjusted / cost, name = label };
+                    yield return new PurchasableOption() { name = label, evaluator = immediate => {
+                        float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, immediate ? Market.Latency.Immediate : Market.Latency.Standard) * reward.Count;
+                        float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
+                        return new Util.Twopass.Result() { value = valueAdjusted / cost, display = label };
+                    }};
                 }
 
                 // Branch out if we can't sell it on the market; there might be more lucrative options!
@@ -261,7 +272,10 @@ public static class Prompt
                 {
                     foreach (var elem in PurchasableAnalysisWorker(reward.Item.Key, amountAcquired / cost * reward.Count))
                     {
-                        yield return new Bootstrap.Result() { gps = elem.gps / cost * reward.Count, name = $"{label} -> {elem.name}" };
+                        string nestedlabel = $"{label} -> {elem.name}";
+                        yield return new PurchasableOption() { name = nestedlabel, evaluator = immediate => {
+                            return new Util.Twopass.Result() { value = elem.evaluator(immediate).value / cost * reward.Count, display = nestedlabel };
+                        }};
                     }
                 }
             }
@@ -278,7 +292,6 @@ public static class Prompt
 
     public static IEnumerable<Bootstrap.Result> AcquireableAnalysisWorker(int itemId, float amountNeeded)
     {
-        var inspected = new HashSet<int>();
         foreach (var shop in Db.GetSheet<SaintCoinach.Xiv.SpecialShop>())
         {
             foreach (var listing in shop.Items)
