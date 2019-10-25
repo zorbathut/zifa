@@ -248,7 +248,7 @@ public static class Util
             public string display;
         }
 
-        public static void Process(IEnumerable<Func<bool, Result>> evaluators)
+        public static void Process(IEnumerable<Func<bool, Result>> evaluators, int desiredCount)
         {
             var quickResults = new List<Item>();
 
@@ -262,10 +262,9 @@ public static class Util
 
             var goodResults = new List<Item>();
 
-            int desiredCount = 20;
             while (quickResults.Count > 0 && (goodResults.Count < desiredCount || goodResults[goodResults.Count - desiredCount].result.value < quickResults[quickResults.Count - 1].result.value))
             {
-                Dbg.Inf($"Immediate-testing; at {goodResults.Count} elements");
+                Dbg.Inf($"Immediate-testing; at {goodResults.Count}/{desiredCount} elements");
 
                 var process = quickResults[quickResults.Count - 1];
                 quickResults.RemoveAt(quickResults.Count - 1);

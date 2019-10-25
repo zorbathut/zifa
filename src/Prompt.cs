@@ -692,7 +692,7 @@ public static class Prompt
             return new Util.Twopass.Result() { value = profit, display = $"{profit}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
         });
 
-        Util.Twopass.Process(processors);
+        Util.Twopass.Process(processors, 10);
     }
 
     private static string CraftSourceFormatter(SaintCoinach.Xiv.Item item, int count, float gil)

@@ -232,7 +232,7 @@ public static class Bootstrap
         }
         else if (sortMethod == SortMethod.Profit)
         {
-            Util.Twopass.Process(evaluators);
+            Util.Twopass.Process(evaluators, 20);
         }
     }
 
