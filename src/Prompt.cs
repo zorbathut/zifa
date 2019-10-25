@@ -38,6 +38,7 @@ public static class Prompt
             Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
             Dbg.Inf("");
             Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
+            Dbg.Inf("  retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
             Dbg.Inf("  recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
             Dbg.Inf("  recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
             Dbg.Inf("");
@@ -144,6 +145,17 @@ public static class Prompt
                     DoRetainerGatherAnalysis("dow", 420);
                     DoRetainerGatherAnalysis("btn", 10000);
                     DoRetainerGatherAnalysis("min", 709);
+                }
+            }
+            else if (instr == "retainergathermax")
+            {
+                // we do it twice just to get all the output dumped in one place after it's cached :V
+                for (int i = 0; i < 2; ++i)
+                {
+                    DoRetainerGatherAnalysis("dow", 10000);
+                    DoRetainerGatherAnalysis("min", 10000);
+                    DoRetainerGatherAnalysis("btn", 10000);
+                    DoRetainerGatherAnalysis("fsh", 10000);
                 }
             }
             else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
