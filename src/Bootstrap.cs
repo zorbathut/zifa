@@ -131,7 +131,7 @@ public static class Bootstrap
         bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
 
         // This is the amount that we're allowed to sell per day
-        float maxSellPerDay = Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Math.Min(result.StackSize, 99));
+        float maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Commerce.MarketExpectedStackSale(result.Key, latency)), Math.Min(result.StackSize, 99));
         if (!allowBulkProduction)
         {
             maxSellPerDay = Math.Min(maxSellPerDay, 3);

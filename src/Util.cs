@@ -39,15 +39,9 @@ public static class Util
         }
     }
 
-    public static void Sort<T>(this ICollection<T> collection, Func<T, T, bool> comparator)
+    public static void Sort<T>(this List<T> collection, Func<T, T, bool> comparator)
     {
-        var list = collection.ToList();
-        list.Sort((lhs, rhs) => comparator(lhs, rhs) ? -1 : (comparator(rhs, lhs) ? 1 : 0));
-        collection.Clear();
-        foreach (var elem in list)
-        {
-            collection.Add(elem);
-        }
+        collection.Sort((lhs, rhs) => comparator(lhs, rhs) ? -1 : (comparator(rhs, lhs) ? 1 : 0));
     }
 
     public static void ExecuteNonQuery(this SQLiteConnection connection, string command)
@@ -101,6 +95,26 @@ public static class Util
         }
 
         return elements[0].value;
+    }
+
+    public static float Percentile(this IEnumerable<int> elements_enum, float percent)
+    {
+        var elements = elements_enum.ToList();
+        elements.Sort((lhs, rhs) => lhs < rhs);
+
+        if (elements.Count == 0)
+        {
+            // okay then
+            return float.NaN;
+        }
+
+        float index = (elements.Count - 1) * percent;
+        return Lerp(elements[(int)Math.Floor(index)], elements[(int)Math.Ceiling(index)], index - (float)Math.Truncate(index));
+    }
+
+    public static float Lerp(float a, float b, float t)
+    {
+        return a + (b - a) * t;
     }
 
     public static IEnumerable<T> Concat<T>(this IEnumerable<T> first, T added)

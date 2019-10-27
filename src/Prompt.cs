@@ -464,6 +464,7 @@ public static class Prompt
             Dbg.Inf($"    Fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
             Dbg.Inf($"    Fastsell HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
             Dbg.Inf($"    Sales per day: {Commerce.MarketSalesPerDay(item.Key, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Expected stack sale: {Commerce.MarketExpectedStackSale(item.Key, Market.Latency.Immediate)}");
             Dbg.Inf($"    Profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1, Market.Latency.Immediate)}");
             Dbg.Inf($"    Profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
             Dbg.Inf($"    Profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99, Market.Latency.Immediate)}");

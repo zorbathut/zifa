@@ -115,6 +115,20 @@ public static class Commerce
         return (float)totalQuantity / span * 60 * 60 * 24;
     }
 
+    public static float MarketExpectedStackSale(int id, Market.Latency latency)
+    {
+        // just get this out of the way first; it's a much much cheaper query
+        var itemdb = Db.Item(id);
+        if (itemdb.IsUntradable)
+        {
+            return float.NaN;
+        }
+
+        var results = Market.History(id, latency);
+
+        return Math.Min(Math.Min(results.history.Select(entry => entry.stack).Percentile(0.9f) * 2, itemdb.StackSize), 99);
+    }
+
     public static float MarketProfitAdjuster(float profit, int id, float acquired, Market.Latency latency)
     {
         if (profit < 0)
@@ -127,9 +141,9 @@ public static class Commerce
             return 0;
         }
 
-        float salesPerDay = MarketSalesPerDay(id, latency);
+        float salesPerSlotDay = Math.Min(MarketSalesPerDay(id, latency), MarketExpectedStackSale(id, latency));
 
-        float daysToSell = acquired / salesPerDay;
+        float daysToSell = acquired / salesPerSlotDay;
 
         return profit / Math.Max(daysToSell, 1);
     }
