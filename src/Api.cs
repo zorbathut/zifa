@@ -1,10 +1,5 @@
 
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
 
 public static class Api
 {
@@ -58,7 +53,7 @@ public static class Api
             retrievalTime = DateTimeOffset.Now;
         }
 
-        return JsonConvert.DeserializeObject<Cherenkov.Session.MarketHistoryResponse>(result);
+        return JsonCache.Retrieve<Cherenkov.Session.MarketHistoryResponse>(result);
     }
 
     public static Cherenkov.Session.MarketPriceResponse RetrievePricing(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
@@ -80,8 +75,8 @@ public static class Api
             Cache.StoreCacheEntry(cacheId, result);
             retrievalTime = DateTimeOffset.Now;
         }
-
-        return JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(result);
+        
+        return JsonCache.Retrieve<Cherenkov.Session.MarketPriceResponse>(result);
     }
 
     public static Cherenkov.Session.MarketPriceResponse RetrievePricing(int id, TimeSpan invalidation)
