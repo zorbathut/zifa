@@ -21,172 +21,187 @@ public static class Prompt
 
     public static void Run()
     {
+        Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e) {
+            if (!Interrupt.ConsumeInterrupt())
+            {
+                e.Cancel = true;
+                Interrupt.QueueInterrupt();
+            }
+        };
+
         while (true)
         {
-            Dbg.Inf("");
-            Dbg.Inf("");
-            Dbg.Inf("Options:");
-            Dbg.Inf("  gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
-            Dbg.Inf("  gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
-            Dbg.Inf("  vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
-            Dbg.Inf("  acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
-            Dbg.Inf("  analyze craftsman vi - dumps various crafting and market info on an item");
-            Dbg.Inf("  rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
-            Dbg.Inf("  vendormarket - finds the best items to be purchased from vendors and marketed");
-            Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
-            Dbg.Inf("  retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
-            Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
-            Dbg.Inf("");
-            Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
-            Dbg.Inf("  retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
-            Dbg.Inf("  recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
-            Dbg.Inf("  recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
-            Dbg.Inf("");
+            try
+            {
+                Dbg.Inf("");
+                Dbg.Inf("");
+                Dbg.Inf("Options:");
+                Dbg.Inf("  gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
+                Dbg.Inf("  gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
+                Dbg.Inf("  vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
+                Dbg.Inf("  acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
+                Dbg.Inf("  analyze craftsman vi - dumps various crafting and market info on an item");
+                Dbg.Inf("  rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
+                Dbg.Inf("  vendormarket - finds the best items to be purchased from vendors and marketed");
+                Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
+                Dbg.Inf("  retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
+                Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
+                Dbg.Inf("");
+                Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
+                Dbg.Inf("  retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
+                Dbg.Inf("  recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
+                Dbg.Inf("  recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
+                Dbg.Inf("");
 
-            string instr = Console.ReadLine();
-            if (PointRegex.Match(instr) is var pmatch && pmatch.Success)
-            {
-                GatherpointCalculator(pmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
-            }
-            else if (GatherRegex.Match(instr) is var gmatch && gmatch.Success)
-            {
-                int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                for (int i = 5; i <= Math.Max(gather, mine); i += 5)
+                string instr = Console.ReadLine();
+                if (PointRegex.Match(instr) is var pmatch && pmatch.Success)
                 {
-                    GatherbestCalculator(Math.Min(gather, i), Math.Min(mine, i));
-                    Dbg.Inf($"THAT'S IT UP TO {i}");
+                    GatherpointCalculator(pmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
                 }
+                else if (GatherRegex.Match(instr) is var gmatch && gmatch.Success)
+                {
+                    int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    for (int i = 5; i <= Math.Max(gather, mine); i += 5)
+                    {
+                        GatherbestCalculator(Math.Min(gather, i), Math.Min(mine, i));
+                        Dbg.Inf($"THAT'S IT UP TO {i}");
+                    }
                 
-            }
-            else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
-            {
-                int amount = int.Parse(vmatch.Groups["amount"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).First());
-                var items = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
-                if (items.Length == 0)
-                {
-                    Dbg.Inf("can't find :(");
                 }
-                else if (items.Length > 1)
+                else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
                 {
-                    Dbg.Inf("Too many!");
-                    foreach (var item in items)
+                    int amount = int.Parse(vmatch.Groups["amount"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).First());
+                    var items = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
+                    if (items.Length == 0)
                     {
-                        Dbg.Inf($"  {item.Name}");
+                        Dbg.Inf("can't find :(");
                     }
+                    else if (items.Length > 1)
+                    {
+                        Dbg.Inf("Too many!");
+                        foreach (var item in items)
+                        {
+                            Dbg.Inf($"  {item.Name}");
+                        }
+                    }
+                    else
+                    {
+                        DoPurchasableAnalysis(items[0].Key, amount);
+                    }
+                }
+                else if (AcquireRegex.Match(instr) is var qmatch && qmatch.Success)
+                {
+                    var items = Db.ItemLoose(qmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
+                    if (items.Length == 0)
+                    {
+                        Dbg.Inf("can't find :(");
+                    }
+                    else if (items.Length > 1)
+                    {
+                        Dbg.Inf("Too many!");
+                        foreach (var item in items)
+                        {
+                            Dbg.Inf($"  {item.Name}");
+                        }
+                    }
+                    else
+                    {
+                        DoAcquireableAnalysis(items[0].Key, 1);
+                    }
+                }
+                else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
+                {
+                    DoItemAnalysis(Db.ItemLoose(amatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()));
+                }
+                else if (RewardsRegex.Match(instr) is var rmatch && rmatch.Success)
+                {
+                    DoRewardsAnalysis(rmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                }
+                else if (instr == "vendormarket")
+                {
+                    DoVendorMarketAnalysis();
+                }
+                else if (GatherCalcRegex.Match(instr) is var gcmatch && gcmatch.Success)
+                {
+                    int lchance = int.Parse(gcmatch.Groups["lchance"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    int hqchance = int.Parse(gcmatch.Groups["hqchance"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    int maxgp = int.Parse(gcmatch.Groups["maxgp"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    int attempts = int.Parse(gcmatch.Groups["attempts"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+                    int hqonly = int.Parse(gcmatch.Groups["hqonly"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
+
+                    GatheringCalculator.ProcessLongterm(lchance, hqchance, maxgp, attempts, hqonly != 0);
+                }
+                else if (RetainerGatherRegex.Match(instr) is var rgmatch && rgmatch.Success)
+                {
+                    string role = rgmatch.Groups["role"].Value;
+                    int skill = int.Parse(rgmatch.Groups["skill"].Value);
+
+                    DoRetainerGatherAnalysis(role, skill);
+                }
+                else if (CraftSourceRegex.Match(instr) is var csmatch && csmatch.Success)
+                {
+                    string role = csmatch.Groups["role"].Value;
+                    int levelmin = int.Parse(csmatch.Groups["levelmin"].Value);
+                    int levelmax = int.Parse(csmatch.Groups["levelmax"].Value);
+
+                    DoCraftSourceAnalysis(role, levelmin, levelmax);
+                }
+                else if (instr == "retainergathercache")
+                {
+                    // we do it twice just to get all the output dumped in one place after it's cached :V
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        DoRetainerGatherAnalysis("dow", 420);
+                        DoRetainerGatherAnalysis("btn", 10000);
+                        DoRetainerGatherAnalysis("min", 709);
+                    }
+                }
+                else if (instr == "retainergathermax")
+                {
+                    // we do it twice just to get all the output dumped in one place after it's cached :V
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        DoRetainerGatherAnalysis("dow", 10000);
+                        DoRetainerGatherAnalysis("min", 10000);
+                        DoRetainerGatherAnalysis("btn", 10000);
+                        DoRetainerGatherAnalysis("fsh", 10000);
+                    }
+                }
+                else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
+                {
+                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 37, maxlevel = 41, craftsmanship = 189, control = 189 },
+                        new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 25, maxlevel = 29, craftsmanship = 152, control = 156 },
+                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 139, control = 139 },
+                        new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 23, maxlevel = 27, craftsmanship = 144, control = 143 },
+                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 24, craftsmanship = 115, control = 124 },
+                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 72, maxlevel = 76, craftsmanship = 1489, control = 1304 },
+                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 137, control = 124 },
+                        new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
+                    }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
+                }
+                else if (RecipeAnalysisMax.Match(instr) is var raxmatch && raxmatch.Success)
+                {
+                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    }, Bootstrap.SortMethod.Profit, bool.Parse(raxmatch.Groups["solo"].Value), bool.Parse(raxmatch.Groups["bulk"].Value));
                 }
                 else
                 {
-                    DoPurchasableAnalysis(items[0].Key, amount);
+                    Dbg.Inf("nope nope nope");
                 }
             }
-            else if (AcquireRegex.Match(instr) is var qmatch && qmatch.Success)
+            catch (Interrupt)
             {
-                var items = Db.ItemLoose(qmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
-                if (items.Length == 0)
-                {
-                    Dbg.Inf("can't find :(");
-                }
-                else if (items.Length > 1)
-                {
-                    Dbg.Inf("Too many!");
-                    foreach (var item in items)
-                    {
-                        Dbg.Inf($"  {item.Name}");
-                    }
-                }
-                else
-                {
-                    DoAcquireableAnalysis(items[0].Key, 1);
-                }
-            }
-            else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
-            {
-                DoItemAnalysis(Db.ItemLoose(amatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()));
-            }
-            else if (RewardsRegex.Match(instr) is var rmatch && rmatch.Success)
-            {
-                DoRewardsAnalysis(rmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
-            }
-            else if (instr == "vendormarket")
-            {
-                DoVendorMarketAnalysis();
-            }
-            else if (GatherCalcRegex.Match(instr) is var gcmatch && gcmatch.Success)
-            {
-                int lchance = int.Parse(gcmatch.Groups["lchance"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                int hqchance = int.Parse(gcmatch.Groups["hqchance"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                int maxgp = int.Parse(gcmatch.Groups["maxgp"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                int attempts = int.Parse(gcmatch.Groups["attempts"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                int hqonly = int.Parse(gcmatch.Groups["hqonly"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-
-                GatheringCalculator.ProcessLongterm(lchance, hqchance, maxgp, attempts, hqonly != 0);
-            }
-            else if (RetainerGatherRegex.Match(instr) is var rgmatch && rgmatch.Success)
-            {
-                string role = rgmatch.Groups["role"].Value;
-                int skill = int.Parse(rgmatch.Groups["skill"].Value);
-
-                DoRetainerGatherAnalysis(role, skill);
-            }
-            else if (CraftSourceRegex.Match(instr) is var csmatch && csmatch.Success)
-            {
-                string role = csmatch.Groups["role"].Value;
-                int levelmin = int.Parse(csmatch.Groups["levelmin"].Value);
-                int levelmax = int.Parse(csmatch.Groups["levelmax"].Value);
-
-                DoCraftSourceAnalysis(role, levelmin, levelmax);
-            }
-            else if (instr == "retainergathercache")
-            {
-                // we do it twice just to get all the output dumped in one place after it's cached :V
-                for (int i = 0; i < 2; ++i)
-                {
-                    DoRetainerGatherAnalysis("dow", 420);
-                    DoRetainerGatherAnalysis("btn", 10000);
-                    DoRetainerGatherAnalysis("min", 709);
-                }
-            }
-            else if (instr == "retainergathermax")
-            {
-                // we do it twice just to get all the output dumped in one place after it's cached :V
-                for (int i = 0; i < 2; ++i)
-                {
-                    DoRetainerGatherAnalysis("dow", 10000);
-                    DoRetainerGatherAnalysis("min", 10000);
-                    DoRetainerGatherAnalysis("btn", 10000);
-                    DoRetainerGatherAnalysis("fsh", 10000);
-                }
-            }
-            else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
-            {
-                Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
-                    new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 37, maxlevel = 41, craftsmanship = 189, control = 189 },
-                    new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 25, maxlevel = 29, craftsmanship = 152, control = 156 },
-                    new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 139, control = 139 },
-                    new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 23, maxlevel = 27, craftsmanship = 144, control = 143 },
-                    new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 24, craftsmanship = 115, control = 124 },
-                    new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 72, maxlevel = 76, craftsmanship = 1489, control = 1304 },
-                    new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 137, control = 124 },
-                    new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
-                }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
-            }
-            else if (RecipeAnalysisMax.Match(instr) is var raxmatch && raxmatch.Success)
-            {
-                Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
-                    new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                    new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
-                }, Bootstrap.SortMethod.Profit, bool.Parse(raxmatch.Groups["solo"].Value), bool.Parse(raxmatch.Groups["bulk"].Value));
-            }
-            else
-            {
-                Dbg.Inf("nope nope nope");
+                Dbg.Wrn("Interrupted!");
             }
         }
     }

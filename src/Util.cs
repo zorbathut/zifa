@@ -247,6 +247,10 @@ public static class Util
         return input.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
+    public static IEnumerable<T> TakeLast<T>(this IEnumerable<T> source, int elements)
+    {
+        return source.Skip(Math.Max(0, source.Count() - elements));
+    }
 
     public static class Twopass
     {
@@ -266,10 +270,24 @@ public static class Util
         {
             var quickResults = new List<Item>();
 
+            var lastDisplay = DateTimeOffset.Now;
+
             foreach (var evaluator in evaluators.ProgressBar())
             {
                 var result = evaluator(false);
                 quickResults.Add(new Item() {evaluator = evaluator, result = result});
+
+                if (DateTimeOffset.Now - lastDisplay > TimeSpan.FromMinutes(5))
+                {
+                    quickResults = quickResults.OrderBy(x => x.result.value).ToList();
+                    foreach (var displayable in quickResults.TakeLast(desiredCount))
+                    {
+                        Dbg.Inf(displayable.result.display);
+                    }
+
+                    lastDisplay = DateTimeOffset.Now;
+                    Dbg.Inf("Continuing . . .");
+                }
             }
 
             quickResults = quickResults.OrderBy(x => x.result.value).ToList();
