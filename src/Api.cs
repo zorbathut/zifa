@@ -46,6 +46,11 @@ public static class Api
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
+            if (Interrupt.ConsumeInterrupt())
+            {
+                throw new Interrupt();
+            }
+
             InitCherenkov();
 
             result = s_Cherenkov.GetMarketHistory(id);
@@ -64,6 +69,11 @@ public static class Api
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
+            if (Interrupt.ConsumeInterrupt())
+            {
+                throw new Interrupt();
+            }
+
             InitCherenkov();
 
             result = s_Cherenkov.GetMarketPrices(id);
