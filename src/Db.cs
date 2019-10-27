@@ -1,6 +1,7 @@
 
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public static class Db
 {
@@ -86,6 +87,29 @@ public static class Db
             {
                 yield return item;
             }
+        }
+    }
+
+    public static SaintCoinach.Xiv.Item ItemLooseSingle(string[] tokens)
+    {
+        var items = Db.ItemLoose(tokens).ToArray();
+        if (items.Length == 0)
+        {
+            Dbg.Inf("can't find :(");
+            return null;
+        }
+        else if (items.Length > 1)
+        {
+            Dbg.Inf("Too many!");
+            foreach (var item in items)
+            {
+                Dbg.Inf($"  {item.Name}");
+            }
+            return null;
+        }
+        else
+        {
+            return items[0];
         }
     }
 

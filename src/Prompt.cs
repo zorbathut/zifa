@@ -15,9 +15,12 @@ public static class Prompt
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex CraftSourceRegex = new Regex("^craftsource (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisMax = new Regex("^recipeanalysismax (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
+    private static Regex SourceAddRegex = new Regex("^sourceadd (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex SourceRemoveRegex = new Regex("^sourceremove (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex SourceCraftRegex = new Regex("^sourcecraft (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -36,21 +39,29 @@ public static class Prompt
                 Dbg.Inf("");
                 Dbg.Inf("");
                 Dbg.Inf("Options:");
-                Dbg.Inf("  gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
-                Dbg.Inf("  gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
-                Dbg.Inf("  vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
-                Dbg.Inf("  acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
-                Dbg.Inf("  analyze craftsman vi - dumps various crafting and market info on an item");
-                Dbg.Inf("  rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
-                Dbg.Inf("  vendormarket - finds the best items to be purchased from vendors and marketed");
-                Dbg.Inf("  gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
-                Dbg.Inf("  retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
-                Dbg.Inf("  craftsource {crafter} {levelmin} {levelmax} - figures out where to acquire a set of items from based on a level range for crafters");
+                Dbg.Inf("  Core commands:");
+                Dbg.Inf("    gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
+                Dbg.Inf("    gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
+                Dbg.Inf("    vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
+                Dbg.Inf("    acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
+                Dbg.Inf("    analyze craftsman vi - dumps various crafting and market info on an item");
+                Dbg.Inf("    rewards nickel turban high steel fending - chooses the best quest reward, given some items names");
+                Dbg.Inf("    vendormarket - finds the best items to be purchased from vendors and marketed");
+                Dbg.Inf("    gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
+                Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
                 Dbg.Inf("");
-                Dbg.Inf("  retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
-                Dbg.Inf("  retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
-                Dbg.Inf("  recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
-                Dbg.Inf("  recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
+                Dbg.Inf("  Stat-based commands:");
+                Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
+                Dbg.Inf("    retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
+                Dbg.Inf("    recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
+                Dbg.Inf("    recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
+                Dbg.Inf("");
+                Dbg.Inf("  Sourcing commands:");
+                Dbg.Inf("    sourcereset - clears the sourcing db");
+                Dbg.Inf("    sourceadd {count} {itemdescr} - adds an item to the sourcing list");
+                Dbg.Inf("    sourceremove {count} {itemdescr} - removes an item from the sourcing list");
+                Dbg.Inf("    sourcecraft {crafter} {levelmin} {levelmax} - adds items based on a level range for crafters");
+                
                 Dbg.Inf("");
 
                 string instr = Console.ReadLine();
@@ -72,42 +83,18 @@ public static class Prompt
                 else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
                 {
                     int amount = int.Parse(vmatch.Groups["amount"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).First());
-                    var items = Db.ItemLoose(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
-                    if (items.Length == 0)
+                    var item = Db.ItemLooseSingle(vmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                    if (item != null)
                     {
-                        Dbg.Inf("can't find :(");
-                    }
-                    else if (items.Length > 1)
-                    {
-                        Dbg.Inf("Too many!");
-                        foreach (var item in items)
-                        {
-                            Dbg.Inf($"  {item.Name}");
-                        }
-                    }
-                    else
-                    {
-                        DoPurchasableAnalysis(items[0].Key, amount);
+                        DoPurchasableAnalysis(item.Key, amount);
                     }
                 }
                 else if (AcquireRegex.Match(instr) is var qmatch && qmatch.Success)
                 {
-                    var items = Db.ItemLoose(qmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray()).ToArray();
-                    if (items.Length == 0)
+                    var item = Db.ItemLooseSingle(qmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                    if (item != null)
                     {
-                        Dbg.Inf("can't find :(");
-                    }
-                    else if (items.Length > 1)
-                    {
-                        Dbg.Inf("Too many!");
-                        foreach (var item in items)
-                        {
-                            Dbg.Inf($"  {item.Name}");
-                        }
-                    }
-                    else
-                    {
-                        DoAcquireableAnalysis(items[0].Key, 1);
+                        DoAcquireableAnalysis(item.Key, 1);
                     }
                 }
                 else if (AnalyzeRegex.Match(instr) is var amatch && amatch.Success)
@@ -139,13 +126,68 @@ public static class Prompt
 
                     DoRetainerGatherAnalysis(role, skill);
                 }
-                else if (CraftSourceRegex.Match(instr) is var csmatch && csmatch.Success)
+                else if (instr == "sourcereset")
                 {
-                    string role = csmatch.Groups["role"].Value;
-                    int levelmin = int.Parse(csmatch.Groups["levelmin"].Value);
-                    int levelmax = int.Parse(csmatch.Groups["levelmax"].Value);
+                    Sourced.Clear();
+                    Dbg.Inf("(☞ﾟヮﾟ)☞");
+                }
+                else if (SourceAddRegex.Match(instr) is var samatch && samatch.Success)
+                {
+                    var item = Db.ItemLooseSingle(samatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                    if (item != null)
+                    {
+                        bool sourceNotEmpty = Sourced.Count != 0;
 
-                    DoCraftSourceAnalysis(role, levelmin, levelmax);
+                        if (!Sourced.ContainsKey(item))
+                        {
+                            Sourced[item] = 0;
+                        }
+
+                        Sourced[item] = Sourced[item] + int.Parse(samatch.Groups["amount"].Value);
+
+                        SourceDoAnalysis();
+                        if (sourceNotEmpty)
+                        {
+                            Dbg.Wrn("Source was not empty at the beginning!");
+                        }
+                    }
+                }
+                else if (SourceRemoveRegex.Match(instr) is var srmatch && srmatch.Success)
+                {
+                    var item = Db.ItemLooseSingle(srmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                    if (item != null)
+                    {
+                        bool sourceNotEmpty = Sourced.Count != 0;
+
+                        if (!Sourced.ContainsKey(item))
+                        {
+                            Sourced[item] = 0;
+                        }
+
+                        Sourced[item] = Sourced[item] - int.Parse(srmatch.Groups["amount"].Value);
+
+                        SourceDoAnalysis();
+                        if (sourceNotEmpty)
+                        {
+                            Dbg.Wrn("Source was not empty at the beginning!");
+                        }
+                    }
+                }
+                else if (SourceCraftRegex.Match(instr) is var scmatch && scmatch.Success)
+                {
+                    string role = scmatch.Groups["role"].Value;
+                    int levelmin = int.Parse(scmatch.Groups["levelmin"].Value);
+                    int levelmax = int.Parse(scmatch.Groups["levelmax"].Value);
+
+                    bool sourceNotEmpty = Sourced.Count != 0;
+
+                    SourceAddCraftElements(role, levelmin, levelmax);
+
+                    SourceDoAnalysis();
+                    if (sourceNotEmpty)
+                    {
+                        Dbg.Wrn("Source was not empty at the beginning!");
+                    }
                 }
                 else if (instr == "retainergathercache")
                 {
@@ -736,6 +778,8 @@ public static class Prompt
         Util.Twopass.Process(processors, 10);
     }
 
+    private static Dictionary<SaintCoinach.Xiv.Item, int> Sourced = new Dictionary<SaintCoinach.Xiv.Item, int>();
+
     private static string CraftSourceFormatter(SaintCoinach.Xiv.Item item, int count, float gil)
     {
         if (gil > 0)
@@ -749,7 +793,7 @@ public static class Prompt
     }
 
     private static HashSet<SaintCoinach.Xiv.Recipe> standardRecipes;
-    public static void DoCraftSourceAnalysis(string role, int minlevel, int maxlevel)
+    public static void SourceAddCraftElements(string role, int minlevel, int maxlevel)
     {
         if (standardRecipes == null)
         {
@@ -774,7 +818,6 @@ public static class Prompt
             }
         }
 
-        var items = new Dictionary<SaintCoinach.Xiv.Item, int>();
         foreach (var recipe in standardRecipes.Where(recipe => {
                 var result = recipe.ResultItem;
                 int resultId = result.Key;
@@ -813,12 +856,12 @@ public static class Prompt
         {
             foreach (var ingredient in recipe.Ingredients)
             {
-                if (!items.ContainsKey(ingredient.Item))
+                if (!Sourced.ContainsKey(ingredient.Item))
                 {
-                    items[ingredient.Item] = 0;
+                    Sourced[ingredient.Item] = 0;
                 }
 
-                items[ingredient.Item] = items[ingredient.Item] + ingredient.Count;
+                Sourced[ingredient.Item] = Sourced[ingredient.Item] + ingredient.Count;
             }
 
             bool careAboutHQ = false;
@@ -832,24 +875,27 @@ public static class Prompt
             
             if (careAboutHQ)
             {
-                if (!items.ContainsKey(recipe.ResultItem))
+                if (!Sourced.ContainsKey(recipe.ResultItem))
                 {
-                    items[recipe.ResultItem] = 0;
+                    Sourced[recipe.ResultItem] = 0;
                 }
 
-                items[recipe.ResultItem] = items[recipe.ResultItem] - recipe.ResultCount;
+                Sourced[recipe.ResultItem] = Sourced[recipe.ResultItem] - recipe.ResultCount;
             }
         }
+    }
 
+    public static void SourceDoAnalysis()
+    {
         // Strip out negatives
-        items = items.Where(kvp => kvp.Value > 0).ToDictionary();
+        Sourced = Sourced.Where(kvp => kvp.Value > 0).ToDictionary();
 
         {
             string result = "Market-procured:\n";
 
             var remaining = new HashSet<SaintCoinach.Xiv.Item>();
 
-            foreach (var itemcombo in items.OrderBy(itemcombo => itemcombo.Key.Name).ProgressBar(false))
+            foreach (var itemcombo in Sourced.OrderBy(itemcombo => itemcombo.Key.Name).ProgressBar(false))
             {
                 // First filter out the market purchases
 
@@ -871,7 +917,7 @@ public static class Prompt
                 {
                     if (Commerce.SellersForItem(item.Key).Count() == 1)
                     {
-                        remaining = SubsumeItems(remaining, items, Commerce.SellersForItem(item.Key).First(), ref result);
+                        remaining = SubsumeItems(remaining, Sourced, Commerce.SellersForItem(item.Key).First(), ref result);
                         found = true;
                         break;
                     }
@@ -904,7 +950,7 @@ public static class Prompt
                     result += "\nCan't be found:\n";
                     foreach (var item in remaining)
                     {
-                        result += CraftSourceFormatter(item, items[item], -1);
+                        result += CraftSourceFormatter(item, Sourced[item], -1);
                     }
                     break;
                 }
@@ -912,7 +958,7 @@ public static class Prompt
                 var bestNpc = npcCounts.MaxBy(kv => kv.Value * 100000 + Commerce.ItemCountInShop(kv.Key)).Key;
 
                 // Grab things
-                remaining = SubsumeItems(remaining, items, bestNpc, ref result);
+                remaining = SubsumeItems(remaining, Sourced, bestNpc, ref result);
             }
 
             Dbg.Inf(result);
