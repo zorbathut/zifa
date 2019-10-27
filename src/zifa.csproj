@@ -72,19 +72,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Api.cs" />
-    <Compile Include="Bootstrap.cs" />
-    <Compile Include="Cache.cs" />
-    <Compile Include="Commerce.cs" />
-    <Compile Include="CraftingCalculator.cs" />
-    <Compile Include="CraftingStructure.cs" />
-    <Compile Include="CraftingUtil.cs" />
-    <Compile Include="Db.cs" />
-    <Compile Include="Dbg.cs" />
-    <Compile Include="GatheringCalculator.cs" />
-    <Compile Include="Market.cs" />
-    <Compile Include="Prompt.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="*.cs" />
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
