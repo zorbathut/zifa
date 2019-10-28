@@ -548,7 +548,7 @@ public static class Prompt
 
             if (Commerce.SellersForItem(item.Key).Any())
             {
-                Dbg.Inf("  Vendors:");
+                Dbg.Inf($"  Vendors ({item.Ask}g):");
                 foreach (var seller in Commerce.SellersForItem(item.Key))
                 {
                     Dbg.Inf($"    {seller.ToZifaString()}");
