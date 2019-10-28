@@ -194,6 +194,7 @@ public static class Prompt
                     // we do it twice just to get all the output dumped in one place after it's cached :V
                     for (int i = 0; i < 2; ++i)
                     {
+                        Dbg.Inf("\n\n");
                         DoRetainerGatherAnalysis("dow", 420);
                         DoRetainerGatherAnalysis("btn", 10000);
                         DoRetainerGatherAnalysis("min", 709);
@@ -205,6 +206,7 @@ public static class Prompt
                     // we do it twice just to get all the output dumped in one place after it's cached :V
                     for (int i = 0; i < 2; ++i)
                     {
+                        Dbg.Inf("\n\n");
                         DoRetainerGatherAnalysis("dow", 10000);
                         DoRetainerGatherAnalysis("min", 10000);
                         DoRetainerGatherAnalysis("btn", 10000);
