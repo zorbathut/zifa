@@ -14,6 +14,7 @@ public static class Prompt
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisMax = new Regex("^recipeanalysismax (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -49,6 +50,7 @@ public static class Prompt
                 Dbg.Inf("    vendormarket - finds the best items to be purchased from vendors and marketed");
                 Dbg.Inf("    gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
                 Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
+                Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
@@ -188,6 +190,10 @@ public static class Prompt
                     {
                         Dbg.Wrn("Source was not empty at the beginning!");
                     }
+                }
+                else if (CofferRegex.Match(instr) is var cmatch && cmatch.Success)
+                {
+                    CofferAnalyze(int.Parse(cmatch.Groups["ilevel"].Value), cmatch.Groups["slot"].Value);
                 }
                 else if (instr == "retainergathercache")
                 {
@@ -625,7 +631,18 @@ public static class Prompt
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        foreach (var item in rewards.ProgressBar().Select(reward => Tuple.Create(reward.Item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.Item.Key, false, Market.Latency.Standard), reward.Item.Key, reward.Counts[0], Market.Latency.Standard) * reward.Counts[0])).OrderByDescending(tup => tup.Item2))
+        DoItemsetComparison(rewards.Select(reward => new ItemsetOption() { item = reward.Item, hq = false, count = reward.Counts[0] }));
+    }
+
+    private struct ItemsetOption
+    {
+        public SaintCoinach.Xiv.Item item;
+        public int count;
+        public bool hq;
+    }
+    private static void DoItemsetComparison(IEnumerable<ItemsetOption> items)
+    {
+        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item.Key, reward.hq, Market.Latency.Standard), reward.item.Key, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -986,5 +1003,26 @@ public static class Prompt
         }
 
         return newRemaining;
+    }
+
+    private static void CofferAnalyze(int ilvl, string slot)
+    {
+        var items = Db.GetSheet<SaintCoinach.Xiv.Item>();
+        var itemsFiltered = items.Where(item =>
+        {
+            if (item.ItemLevel.Key != ilvl)
+            {
+                return false;
+            }
+
+            if (!item.EquipSlotCategory.PossibleSlots.Any(pslot => pslot.Name.ToLower() == slot.ToLower()))
+            {
+                return false;
+            }
+
+            return true;
+        });
+
+        DoItemsetComparison(itemsFiltered.Select(item => new ItemsetOption() { item = item, hq = true, count = 1 }));
     }
 }
