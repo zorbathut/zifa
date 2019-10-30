@@ -75,12 +75,8 @@ public static class Prompt
                 {
                     int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
                     int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                    for (int i = 5; i <= Math.Max(gather, mine); i += 5)
-                    {
-                        GatherbestCalculator(Math.Min(gather, i), Math.Min(mine, i));
-                        Dbg.Inf($"THAT'S IT UP TO {i}");
-                    }
-                
+                    
+                    GatherbestCalculator(gather, mine);
                 }
                 else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
                 {
@@ -459,58 +455,65 @@ public static class Prompt
 
     public static void GatherbestCalculator(int gather, int mine)
     {
-        var prospective = new HashSet<SaintCoinach.Xiv.GatheringPointBase>();
+        var transientSheet = Db.Realm.GameData.GetSheet("GatheringPointTransient");
+
+        var prospective = new HashSet<SaintCoinach.Xiv.Item>();
+        var unlimited = new HashSet<SaintCoinach.Xiv.Item>();
         foreach (var point in Db.GetSheet<SaintCoinach.Xiv.GatheringPoint>())
         {
-            if (point.TerritoryType != null)
+            if (point.TerritoryType == null || point.TerritoryType.Name == "")
             {
-                prospective.Add(point.Base);
+                continue;
             }
-        }
 
-        var seen = new HashSet<int>();
-        seen.Add(0); // yes yes it's a hack
-        var results = new List<Tuple<float, string>>();
-        foreach (var point in prospective)
-        {
-            string pointtype = point.Type.Name;
+            if (point.PlaceName == null || point.PlaceName.Name == "")
+            {
+                continue;
+            }
+
+            var pbase = point.Base;
+            string pointtype = pbase.Type.Name;
             bool valid = false;
-            if ((pointtype == "Mining" || pointtype == "Quarrying") && point.GatheringLevel <= gather) valid = true;
-            if ((pointtype == "Harvesting" || pointtype == "Logging") && point.GatheringLevel <= mine) valid = true;
+            if ((pointtype == "Mining" || pointtype == "Quarrying") && pbase.GatheringLevel <= gather) valid = true;
+            if ((pointtype == "Harvesting" || pointtype == "Logging") && pbase.GatheringLevel <= mine) valid = true;
 
             if (!valid)
             {
                 continue;
             }
 
-            foreach (var gitem in point.Items)
-            {
-                if (seen.Contains(gitem.Item.Key))
-                {
-                    continue;
-                }
-                seen.Add(gitem.Item.Key);
+            var transient = transientSheet[point.Key];
 
+            foreach (var gitem in pbase.Items)
+            {
                 if (gitem.Item is SaintCoinach.Xiv.Item item)
                 {
-                    if (item.IsUntradable)
+                    if (item.Key == 0 || item.IsUntradable)
                     {
                         continue;
                     }
 
-                    float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item.Key, false, Market.Latency.Standard), item.Key, point.IsLimited ? 10 : 99, Market.Latency.Standard);
-                    string usp = point.IsLimited ? "USP" : "   ";
-                    results.Add(Tuple.Create(value, $"{usp} {value}: {item.Name}"));
+                    prospective.Add(item);
+
+                    if (Convert.ToUInt32(transient.GetRaw(2)) == 0)
+                    {
+                        unlimited.Add(item);
+                    }
                 }
-                
             }
         }
 
-        Dbg.Inf($"{results.Count} matches");
-        foreach (var item in results.OrderBy(tup => tup.Item1))
+        Func<bool, Util.Twopass.Result> function(SaintCoinach.Xiv.Item item) => immediate =>
         {
-            Dbg.Inf(item.Item2);
-        }
+            bool lim = !unlimited.Contains(item);
+            var latency = immediate ? Market.Latency.Standard : Market.Latency.Standard;
+            float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item.Key, false, latency), item.Key, lim ? 10 : 99, latency);
+            string badge = lim ? "LIM" : "   ";
+            return new Util.Twopass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
+        };
+
+        Util.Twopass.Process(prospective.Where(item => unlimited.Contains(item)).Select(function), 20);
+        Util.Twopass.Process(prospective.Select(function), 20);
     }
 
     public static void DoItemAnalysis(IEnumerable<SaintCoinach.Xiv.Item> items)
