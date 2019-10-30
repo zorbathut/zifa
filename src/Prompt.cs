@@ -506,7 +506,7 @@ public static class Prompt
         Func<bool, Util.Twopass.Result> function(SaintCoinach.Xiv.Item item) => immediate =>
         {
             bool lim = !unlimited.Contains(item);
-            var latency = immediate ? Market.Latency.Standard : Market.Latency.Standard;
+            var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
             float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item.Key, false, latency), item.Key, lim ? 10 : 99, latency);
             string badge = lim ? "LIM" : "   ";
             return new Util.Twopass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
