@@ -21,7 +21,8 @@ public static class Prompt
 
     private static Regex SourceAddRegex = new Regex("^sourceadd (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex SourceRemoveRegex = new Regex("^sourceremove (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex SourceCraftRegex = new Regex("^sourcecraft (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex SourceCraftRegex = new Regex("^sourcecraft (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex SourceCraftRangeRegex = new Regex("^sourcecraftrange (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -62,7 +63,8 @@ public static class Prompt
                 Dbg.Inf("    sourcereset - clears the sourcing db");
                 Dbg.Inf("    sourceadd {count} {itemdescr} - adds an item to the sourcing list");
                 Dbg.Inf("    sourceremove {count} {itemdescr} - removes an item from the sourcing list");
-                Dbg.Inf("    sourcecraft {crafter} {levelmin} {levelmax} - adds items based on a level range for crafters");
+                Dbg.Inf("    sourcecraft {count} {itemdescr} - adds components to craft an item to the sourcing list");
+                Dbg.Inf("    sourcecraftrange {crafter} {levelmin} {levelmax} - adds items based on a level range for crafters");
                 
                 Dbg.Inf("");
 
@@ -173,9 +175,39 @@ public static class Prompt
                 }
                 else if (SourceCraftRegex.Match(instr) is var scmatch && scmatch.Success)
                 {
-                    string role = scmatch.Groups["role"].Value;
-                    int levelmin = int.Parse(scmatch.Groups["levelmin"].Value);
-                    int levelmax = int.Parse(scmatch.Groups["levelmax"].Value);
+                    var item = Db.ItemLooseSingle(scmatch.Groups["token"].Captures.OfType<System.Text.RegularExpressions.Capture>().Select(cap => cap.Value).ToArray());
+                    var recipes = Db.GetSheet<SaintCoinach.Xiv.Recipe>().Where(rec => rec.ResultItem == item).ToArray();
+                    var recipe = recipes.FirstOrDefault();
+                    if (recipes.Length != 1)
+                    {
+                        Dbg.Err("Could not find an isolated recipe");
+                    }
+                    if (item != null && recipes.Length == 1 && recipe != null)
+                    {
+                        bool sourceNotEmpty = Sourced.Count != 0;
+
+                        foreach (var ingredient in recipe.Ingredients)
+                        {
+                            if (!Sourced.ContainsKey(ingredient.Item))
+                            {
+                                Sourced[ingredient.Item] = 0;
+                            }
+
+                            Sourced[ingredient.Item] = Sourced[ingredient.Item] + ingredient.Count;
+                        }
+
+                        SourceDoAnalysis();
+                        if (sourceNotEmpty)
+                        {
+                            Dbg.Wrn("Source was not empty at the beginning!");
+                        }
+                    }
+                }
+                else if (SourceCraftRangeRegex.Match(instr) is var scrmatch && scrmatch.Success)
+                {
+                    string role = scrmatch.Groups["role"].Value;
+                    int levelmin = int.Parse(scrmatch.Groups["levelmin"].Value);
+                    int levelmax = int.Parse(scrmatch.Groups["levelmax"].Value);
 
                     bool sourceNotEmpty = Sourced.Count != 0;
 
