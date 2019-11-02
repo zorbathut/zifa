@@ -313,6 +313,22 @@ public static class Util
             }
         }
     }
+
+    public static float MinWithoutNan(float lhs, float rhs)
+    {
+        if (float.IsNaN(lhs))
+        {
+            return rhs;
+        }
+        else if (float.IsNaN(rhs))
+        {
+            return lhs;
+        }
+        else
+        {
+            return Math.Min(lhs, rhs);
+        }
+    }
 }
 
 public static class EnumUtil

@@ -59,10 +59,9 @@ public static class Commerce
             float phqp = resultprices.entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
             float punfiltered = resultprices.entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
 
-            // TODO MIN OR NAN
-            lqp = Math.Min(hlqp, punfiltered);
-            hqp = Math.Min(hhqp, punfiltered);
-            unfiltered = Math.Min(hunfiltered, punfiltered);
+            lqp = Util.MinWithoutNan(hlqp, punfiltered);
+            hqp = Util.MinWithoutNan(hhqp, punfiltered);
+            unfiltered = Util.MinWithoutNan(hunfiltered, punfiltered);
         }
         else
         {
