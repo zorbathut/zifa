@@ -141,7 +141,7 @@ public static class Prompt
                             Sourced[item] = 0;
                         }
 
-                        Sourced[item] = Sourced[item] + int.Parse(samatch.Groups["amount"].Value);
+                        Sourced[item] = Sourced[item] + int.Parse(samatch.Groups["count"].Value);
 
                         SourceDoAnalysis();
                         if (sourceNotEmpty)
@@ -162,7 +162,7 @@ public static class Prompt
                             Sourced[item] = 0;
                         }
 
-                        Sourced[item] = Sourced[item] - int.Parse(srmatch.Groups["amount"].Value);
+                        Sourced[item] = Sourced[item] - int.Parse(srmatch.Groups["count"].Value);
 
                         SourceDoAnalysis();
                         if (sourceNotEmpty)
