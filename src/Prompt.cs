@@ -17,6 +17,7 @@ public static class Prompt
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RecipeAnalysisLevel = new Regex("^recipeanalysislevel (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisMax = new Regex("^recipeanalysismax (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     private static Regex SourceAddRegex = new Regex("^sourceadd (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -57,6 +58,7 @@ public static class Prompt
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
                 Dbg.Inf("    retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
                 Dbg.Inf("    recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
+                Dbg.Inf("    recipeanalysislevel (solo) (bulk) (level) - does various recipe analysis queries assuming you can craft everything up to a given level");
                 Dbg.Inf("    recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
                 Dbg.Inf("");
                 Dbg.Inf("  Sourcing commands:");
@@ -259,6 +261,20 @@ public static class Prompt
                         new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 137, control = 124 },
                         new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
                     }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
+                }
+                else if (RecipeAnalysisLevel.Match(instr) is var ralmatch && ralmatch.Success)
+                {
+                    int level = int.Parse(ralmatch.Groups["level"].Value);
+                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                        new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    }, Bootstrap.SortMethod.Profit, bool.Parse(ralmatch.Groups["solo"].Value), bool.Parse(ralmatch.Groups["bulk"].Value));
                 }
                 else if (RecipeAnalysisMax.Match(instr) is var raxmatch && raxmatch.Success)
                 {
