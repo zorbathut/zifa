@@ -58,6 +58,22 @@ public static class Db
 
     public static IEnumerable<SaintCoinach.Xiv.Item> ItemLoose(string[] tokens)
     {
+        // Look for a literal search
+        if (tokens[0][0] == '"' && tokens.Last().Last() == '"')
+        {
+            string line = string.Concat(string.Join(" ", tokens).Where(c => c != '"'));
+
+            foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
+            {
+                if (string.Equals(item.Name.ToString(), line, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return item;
+                }
+            }
+
+            yield break;
+        }
+
         foreach (var item in GetSheet<SaintCoinach.Xiv.Item>())
         {
             string iname = item.Name.ToString();
