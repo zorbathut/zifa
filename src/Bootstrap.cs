@@ -115,7 +115,7 @@ public static class Bootstrap
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
-        string readable = $"\n{recipe.ClassJob.Name} {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
+        string readable = $"\n{recipe.ClassJob.Name}({recipe.RecipeLevelTable.ClassJobLevel}) {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
         float tcost = 0;
         foreach (var ingredient in recipe.Ingredients)
         {
