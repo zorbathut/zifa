@@ -157,7 +157,7 @@ public static class Bootstrap
 
     public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
     {
-        var evaluators = new List<Func<bool, Util.Twopass.Result>>();
+        var evaluators = new List<Util.Twopass.Input>();
 
         foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
         {
@@ -216,16 +216,16 @@ public static class Bootstrap
 
             if (canHq && result.CanBeHq)
             {
-                evaluators.Add(immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk));
+                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk), unique = result });
             }
 
-            evaluators.Add(immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk));
+            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk), unique = result });
         }
 
         if (sortMethod == SortMethod.Order)
         {
             // ToArray forces it to be evaluated before printing so we don't interlace with debug output
-            foreach (var output in evaluators.ProgressBar().Select(item =>  item(false).display).ToArray())
+            foreach (var output in evaluators.ProgressBar().Select(item => item.evaluator(false).display).ToArray())
             {
                 Dbg.Inf(output);
             }

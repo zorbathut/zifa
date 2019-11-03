@@ -254,9 +254,15 @@ public static class Util
 
     public static class Twopass
     {
-        private struct Item
+        public struct Input
         {
             public Func<bool, Result> evaluator;
+            public object unique;
+        }
+
+        private struct Item
+        {
+            public Input input;
             public Result result;
         }
 
@@ -266,16 +272,16 @@ public static class Util
             public string display;
         }
 
-        public static void Process(IEnumerable<Func<bool, Result>> evaluators, int desiredCount)
+        public static void Process(IEnumerable<Input> inputs, int desiredCount)
         {
             var quickResults = new List<Item>();
 
             var lastDisplay = DateTimeOffset.Now;
 
-            foreach (var evaluator in evaluators.ProgressBar())
+            foreach (var input in inputs.ProgressBar())
             {
-                var result = evaluator(false);
-                quickResults.Add(new Item() {evaluator = evaluator, result = result});
+                var result = input.evaluator(false);
+                quickResults.Add(new Item() {input = input, result = result});
 
                 if (DateTimeOffset.Now - lastDisplay > TimeSpan.FromMinutes(5))
                 {
@@ -301,10 +307,17 @@ public static class Util
                 var process = quickResults[quickResults.Count - 1];
                 quickResults.RemoveAt(quickResults.Count - 1);
 
-                process.result = process.evaluator(true);
+                process.result = process.input.evaluator(true);
                 goodResults.Add(process);
 
                 goodResults = goodResults.OrderBy(x => x.result.value).ToList();
+
+                // Remove worse un-uniqued elements
+                if (process.input.unique != null)
+                {
+                    var best = goodResults.Where(r => r.input.unique == process.input.unique).Last();
+                    goodResults = goodResults.Where(r => r.input.evaluator == best.input.evaluator || r.input.unique != best.input.unique).ToList();
+                }
             }
 
             foreach (var result in goodResults)
