@@ -111,48 +111,186 @@ public static class Bootstrap
     }
 
     readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
+    private struct IngredientData
+    {
+        public SaintCoinach.Xiv.Item item;
+        public int countForEach;
+        public Cherenkov.Session.MarketPriceResponse prices;
+
+        public int GetCostForCraft(int crafts)
+        {
+            int end = GetCostForBuying((crafts + 1) * countForEach);
+            if (end == int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            int start = GetCostForBuying(crafts * countForEach);
+
+            return end - start;
+        }
+
+        private int GetCostForBuying(int remaining, out bool market, out bool vendor)
+        {
+            market = false;
+            vendor = false;
+
+            int vendorCost = int.MaxValue;
+            if (Commerce.CanBuyFromVendor(item.Key) && item.Ask > 0)
+            {
+                vendorCost = item.Ask;
+            }
+
+            int totalCost = 0;
+
+            if (prices?.entries != null)
+            {
+                foreach (var entry in prices.entries)
+                {
+                    if (entry.sellPrice >= vendorCost)
+                    {
+                        break;
+                    }
+
+                    int bought = Math.Min(remaining, entry.stack);
+                    totalCost += entry.sellPrice * bought;
+                    remaining -= bought;
+                    market = true;
+                }
+            }
+
+            if (remaining == 0)
+            {
+                return totalCost;
+            }
+            else if (vendorCost != int.MaxValue)
+            {
+                vendor = true;
+                return totalCost + vendorCost * remaining;
+            }
+            else
+            {
+                return int.MaxValue;
+            }
+        }
+
+        private int GetCostForBuying(int remaining)
+        {
+            return GetCostForBuying(remaining, out bool market, out bool vendor);
+        }
+
+        public string GetSourceString(int crafts)
+        {
+            int totalCost = GetCostForBuying(crafts * countForEach, out bool market, out bool vendor);
+            int firstCost = GetCostForBuying(1);
+            int lastCost = GetCostForBuying(crafts * countForEach) - GetCostForBuying(crafts * countForEach - 1);
+
+            string source;
+            if (market && vendor)
+            {
+                source = "market+vendor";
+            }
+            else if (market)
+            {
+                source = "market";
+            }
+            else if (vendor)
+            {
+                source = "vendor";
+            }
+            else
+            {
+                source = "wtf";
+            }
+
+            string coststring;
+            if (firstCost == lastCost)
+            {
+                coststring = firstCost.ToString();
+            }
+            else
+            {
+                coststring= $"{firstCost}-{lastCost}";
+            }
+
+            return $"buy from {source} for {coststring} x{crafts * countForEach}";
+        }
+    }
+
     public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
     {
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
-        string readable = $"\n{recipe.ClassJob.Name}({recipe.RecipeLevelTable.ClassJobLevel}) {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} ({recipe.ResultItem.Key}): expected revenue {Commerce.ValueSell(result.Key, hq, latency):F0}";
-        float tcost = 0;
-        foreach (var ingredient in recipe.Ingredients)
-        {
-            float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, latency, out string source);
-            readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
-
-            tcost += ingredient.Count * cost;
-        }
-
-        float profit = expectedRevenue - tcost;
-
-        // Can't bulk-produce HQ, unfortunately
-        bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
-
-        // This is the amount that we're allowed to sell per day
-        float maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Commerce.MarketExpectedStackSale(result.Key, latency)), Math.Min(result.StackSize, 99));
-        if (!allowBulkProduction)
-        {
-            maxSellPerDay = Math.Min(maxSellPerDay, 3);
-        }
-
-        if (!includeSolo && maxSellPerDay <= 3)
-        {
-            return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
-        }
         
-        // Adjust profit
-        float profitTimeAdjusted = (profit / recipe.ResultCount) * maxSellPerDay;
+        // Build our ingredient lists
+        var ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item.Key, latency) }).ToArray();
+
+        int toSell = 0;
+        int totalCost = 0;
+        float maxSellPerDay;
+        {
+            {
+                // Can't bulk-produce HQ, unfortunately
+                bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
+
+                // This is the amount that we're allowed to sell per day
+                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Commerce.MarketExpectedStackSale(result.Key, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
+                if (!allowBulkProduction)
+                {
+                    maxSellPerDay = Math.Min(maxSellPerDay, 1);
+                }
+
+                if (!includeSolo && maxSellPerDay <= 1)
+                {
+                    return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
+                }
+            }
+
+            for (int i = 0; i < (int)Math.Ceiling(maxSellPerDay); ++i)
+            {
+                int itemCost = 0;
+                foreach (var ingredient in ingredients)
+                {
+                    int cost = ingredient.GetCostForCraft(i);
+                    if (cost == int.MaxValue)
+                    {
+                        itemCost = int.MaxValue;
+                        break;
+                    }
+
+                    itemCost += cost;
+                }
+
+                if (itemCost < expectedRevenue * 0.8f)
+                {
+                    totalCost += itemCost;
+                    toSell++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        string readable = $"\n{recipe.ClassJob.Name}({recipe.RecipeLevelTable.ClassJobLevel}) {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} x{toSell} ({recipe.ResultItem.Key}): expected revenue {expectedRevenue * toSell:F0}, {expectedRevenue / recipe.ResultCount:F0}/ea";
+
+        foreach (var ingredient in ingredients)
+        {
+            readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
+        }
+
+        float profit = expectedRevenue * toSell - totalCost;
+        float adjustedProfit = profit / toSell * maxSellPerDay;
         
-        readable += "\n" + $"  Total cost: {tcost:F0}, total profit {profit:F0}, time-adjusted profit {profitTimeAdjusted:F0}";
+        readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
         if (latency == Market.Latency.Immediate && Market.IsSelling(result.Key, People))
         {
             readable = readable.Replace("\n", "    \n");
         }
 
-        return new Util.Twopass.Result() { value = profitTimeAdjusted, display = readable };
+        return new Util.Twopass.Result() { value = adjustedProfit, display = readable };
     }
 
     public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
