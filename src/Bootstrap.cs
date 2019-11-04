@@ -261,7 +261,12 @@ public static class Bootstrap
                     itemCost += cost;
                 }
 
-                if (itemCost < expectedRevenue * 0.8f)
+                if (itemCost == int.MaxValue)
+                {
+                    // we actually have no items here
+                    break;
+                }
+                else if (toSell == 0 || itemCost < expectedRevenue * 0.8f)
                 {
                     totalCost += itemCost;
                     toSell++;
@@ -281,7 +286,7 @@ public static class Bootstrap
         }
 
         float profit = expectedRevenue * toSell - totalCost;
-        float adjustedProfit = profit / toSell * maxSellPerDay;
+        float adjustedProfit = toSell == 0 ? 0 : (profit / toSell * maxSellPerDay);
         
         readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
