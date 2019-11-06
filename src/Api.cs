@@ -77,7 +77,7 @@ public static class Api
             retrievalTime = DateTimeOffset.Now;
         }
         
-        return JsonCache.Retrieve<Market.Pricing>(result, json => new Market.Pricing(JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(json)));
+        return JsonCache.Retrieve<Market.Pricing>(result, json => new Market.Pricing(JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(json), Db.Item(id)));
     }
 
     public static Market.Pricing RetrievePricing(int id, TimeSpan invalidation)

@@ -9,18 +9,137 @@ public static class Market
     public class Pricing
     {
         private Cherenkov.Session.MarketPriceResponse pricing;
+        private SaintCoinach.Xiv.Item item;
+        private readonly static List<Cherenkov.Session.MarketPriceResponse.Entry> NullEntries = new List<Cherenkov.Session.MarketPriceResponse.Entry>();
+    
+        public struct Bracket
+        {
+            public bool containsMarket;
+            public bool containsVendor;
+
+            public float marketMin;
+            public float marketMax;
+            public int marketCount;
+
+            public float vendorPrice;
+            public int vendorCount;
+
+            public float totalMin;
+            public float totalMax;
+        }
 
         public List<Cherenkov.Session.MarketPriceResponse.Entry> Entries
         {
             get
             {
-                return pricing.entries;
+                return pricing?.entries ?? NullEntries;
             }
         }
 
-        public Pricing(Cherenkov.Session.MarketPriceResponse pricing)
+        public Pricing(Cherenkov.Session.MarketPriceResponse pricing, SaintCoinach.Xiv.Item item)
         {
             this.pricing = pricing;
+            this.item = item;
+        }
+
+        public int MarketQuantity()
+        {
+            float vendorPrice = item.VendorPrice();
+
+            int quantity = 0;
+            foreach (var entry in Entries)
+            {
+                if (entry.sellPrice >= vendorPrice)
+                {
+                    break;
+                }
+
+                quantity += entry.stack;
+            }
+
+            return quantity;
+        }
+
+        public float PriceForRange(int start, int end)
+        {
+            return PriceForQuantity(end) - PriceForQuantity(start);
+        }
+
+        public float PriceForRange(int start, int end, out Bracket bracket)
+        {
+            if (start == end)
+            {
+                bracket = new Bracket();
+                return 0;
+            }
+
+            float totalPrice = PriceForRange(start, end);
+            float vendorPrice = item.VendorPrice();
+            int marketQuantity = MarketQuantity();
+            if (marketQuantity >= end - start)
+            {
+                // Must be entirely market.
+                bracket = new Bracket();
+                bracket.containsMarket = true;
+                bracket.totalMin = bracket.marketMin = Entries[0].sellPrice;
+                bracket.totalMax = bracket.marketMax = PriceForRange(end - 1, end);
+                bracket.marketCount = end - start;
+            }
+            else if (marketQuantity == 0)
+            {
+                // Must be entirely vendor.
+                bracket = new Bracket();
+                bracket.containsVendor = true;
+                bracket.totalMin = bracket.totalMax = bracket.vendorPrice = item.VendorPrice();
+                bracket.vendorCount = end - start;
+            }
+            else
+            {
+                // weird spooky hybrid
+                bracket = new Bracket();
+                bracket.containsMarket = true;
+                bracket.containsVendor = true;
+                bracket.totalMin = bracket.marketMin = Entries[0].sellPrice;
+                bracket.totalMax = bracket.marketMax = vendorPrice; // not accurate, kind of?
+                bracket.marketCount = MarketQuantity();
+                bracket.vendorPrice = vendorPrice;
+                bracket.vendorCount = end - start - bracket.marketCount;
+            }
+
+            return totalPrice;
+        }
+
+        public float PriceForQuantity(int quantity)
+        {
+            float vendorPrice = item.VendorPrice();
+
+            int quantityRemaining = quantity;
+            float moneySpent = 0;
+
+            foreach (var entry in Entries)
+            {
+                if (entry.sellPrice >= vendorPrice)
+                {
+                    break;
+                }
+
+                int purchased = Math.Min(quantityRemaining, entry.stack);
+                moneySpent += entry.sellPrice * purchased;
+                quantityRemaining -= purchased;
+
+                if (quantityRemaining == 0)
+                {
+                    break;
+                }
+            }
+
+            // it's OK if this NaN's us
+            if (quantityRemaining > 0)
+            {
+                moneySpent += quantityRemaining * (int)vendorPrice;
+            }
+
+            return moneySpent;
         }
     }
 
@@ -107,7 +226,7 @@ public static class Market
     {
         if (!Db.Item(id).IsMarketable())
         {
-            return null;
+            return new Pricing(null, Db.Item(id));
         }
 
         return Api.RetrievePricing(id, GetCacheTime(id, latency));

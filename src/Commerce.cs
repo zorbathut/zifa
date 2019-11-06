@@ -217,6 +217,11 @@ public static class Commerce
         return Marketables().Contains(id);
     }
 
+    public static float VendorPrice(this SaintCoinach.Xiv.Item item)
+    {
+        return CanBuyFromVendor(item.Key) ? item.Ask : float.NaN;
+    }
+
     private static Dictionary<int, SaintCoinach.Xiv.ENpc[]> itemToNPC;
     private static Dictionary<SaintCoinach.Xiv.ENpc, int> npcToItemCount;
     private static string[] blacklistedMerchants = new string[]

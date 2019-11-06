@@ -117,84 +117,25 @@ public static class Bootstrap
         public int countForEach;
         public Market.Pricing prices;
 
-        public int GetCostForCraft(int crafts)
+        public float GetCostForCraft(int crafts)
         {
-            int end = GetCostForBuying((crafts + 1) * countForEach);
-            if (end == int.MaxValue)
-            {
-                return int.MaxValue;
-            }
-
-            int start = GetCostForBuying(crafts * countForEach);
-
-            return end - start;
-        }
-
-        private int GetCostForBuying(int remaining, out bool market, out bool vendor)
-        {
-            market = false;
-            vendor = false;
-
-            int vendorCost = int.MaxValue;
-            if (Commerce.CanBuyFromVendor(item.Key) && item.Ask > 0)
-            {
-                vendorCost = item.Ask;
-            }
-
-            int totalCost = 0;
-
-            if (prices?.Entries != null)
-            {
-                foreach (var entry in prices.Entries)
-                {
-                    if (entry.sellPrice >= vendorCost)
-                    {
-                        break;
-                    }
-
-                    int bought = Math.Min(remaining, entry.stack);
-                    totalCost += entry.sellPrice * bought;
-                    remaining -= bought;
-                    market = true;
-                }
-            }
-
-            if (remaining == 0)
-            {
-                return totalCost;
-            }
-            else if (vendorCost != int.MaxValue)
-            {
-                vendor = true;
-                return totalCost + vendorCost * remaining;
-            }
-            else
-            {
-                return int.MaxValue;
-            }
-        }
-
-        private int GetCostForBuying(int remaining)
-        {
-            return GetCostForBuying(remaining, out bool market, out bool vendor);
+            return prices.PriceForRange(crafts * countForEach, (crafts + 1) * countForEach);
         }
 
         public string GetSourceString(int crafts)
         {
-            int totalCost = GetCostForBuying(crafts * countForEach, out bool market, out bool vendor);
-            int firstCost = GetCostForBuying(1);
-            int lastCost = GetCostForBuying(crafts * countForEach) - GetCostForBuying(crafts * countForEach - 1);
+            prices.PriceForRange(0, crafts * countForEach, out var bracket);
 
             string source;
-            if (market && vendor)
+            if (bracket.containsMarket && bracket.containsVendor)
             {
                 source = "market+vendor";
             }
-            else if (market)
+            else if (bracket.containsMarket)
             {
                 source = "market";
             }
-            else if (vendor)
+            else if (bracket.containsVendor)
             {
                 source = "vendor";
             }
@@ -204,13 +145,13 @@ public static class Bootstrap
             }
 
             string coststring;
-            if (firstCost == lastCost)
+            if (bracket.totalMin == bracket.totalMax)
             {
-                coststring = firstCost.ToString();
+                coststring = bracket.totalMin.ToString("F0");
             }
             else
             {
-                coststring= $"{firstCost}-{lastCost}";
+                coststring= $"{bracket.totalMin:F0}-{bracket.totalMax:F0}";
             }
 
             return $"buy from {source} for {coststring} x{crafts * countForEach}";
@@ -226,7 +167,7 @@ public static class Bootstrap
         var ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item.Key, latency) }).ToArray();
 
         int toSell = 0;
-        int totalCost = 0;
+        float totalCost = 0;
         float maxSellPerDay;
         {
             {
@@ -248,20 +189,13 @@ public static class Bootstrap
 
             for (int i = 0; i < (int)Math.Ceiling(maxSellPerDay); ++i)
             {
-                int itemCost = 0;
+                float itemCost = 0;
                 foreach (var ingredient in ingredients)
                 {
-                    int cost = ingredient.GetCostForCraft(i);
-                    if (cost == int.MaxValue)
-                    {
-                        itemCost = int.MaxValue;
-                        break;
-                    }
-
-                    itemCost += cost;
+                    itemCost += ingredient.GetCostForCraft(i);
                 }
 
-                if (itemCost == int.MaxValue)
+                if (float.IsNaN(itemCost))
                 {
                     // we actually have no items here
                     break;
