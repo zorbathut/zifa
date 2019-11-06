@@ -115,7 +115,7 @@ public static class Bootstrap
     {
         public SaintCoinach.Xiv.Item item;
         public int countForEach;
-        public Cherenkov.Session.MarketPriceResponse prices;
+        public Market.Pricing prices;
 
         public int GetCostForCraft(int crafts)
         {
@@ -143,9 +143,9 @@ public static class Bootstrap
 
             int totalCost = 0;
 
-            if (prices?.entries != null)
+            if (prices?.Entries != null)
             {
-                foreach (var entry in prices.entries)
+                foreach (var entry in prices.Entries)
                 {
                     if (entry.sellPrice >= vendorCost)
                     {

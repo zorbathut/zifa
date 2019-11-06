@@ -6,6 +6,24 @@ using System.Linq;
 
 public static class Market
 {
+    public class Pricing
+    {
+        private Cherenkov.Session.MarketPriceResponse pricing;
+
+        public List<Cherenkov.Session.MarketPriceResponse.Entry> Entries
+        {
+            get
+            {
+                return pricing.entries;
+            }
+        }
+
+        public Pricing(Cherenkov.Session.MarketPriceResponse pricing)
+        {
+            this.pricing = pricing;
+        }
+    }
+
     public enum Latency
     {
         Standard,
@@ -85,7 +103,7 @@ public static class Market
         return apiresult;
     }
 
-    public static Cherenkov.Session.MarketPriceResponse Prices(int id, Latency latency)
+    public static Pricing Prices(int id, Latency latency)
     {
         if (!Db.Item(id).IsMarketable())
         {
@@ -99,7 +117,7 @@ public static class Market
     {
         var prices = Prices(id, Latency.Immediate);
 
-        foreach (var price in prices.entries)
+        foreach (var price in prices.Entries)
         {
             string poster = price.sellRetainerName;
             if (people.Contains(poster))

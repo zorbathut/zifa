@@ -40,9 +40,9 @@ public static class Commerce
         {
             var results = Market.Prices(id, latency);
 
-            lqp = results.entries.Where(item => item.hq == false).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
-            hqp = results.entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
-            unfiltered = results.entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            lqp = results.Entries.Where(item => item.hq == false).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            hqp = results.Entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            unfiltered = results.Entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
         }
         else if (type == TransactionType.Fastsell)
         {
@@ -56,8 +56,8 @@ public static class Commerce
 
             var resultprices = Market.Prices(id, latency);
 
-            float phqp = resultprices.entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
-            float punfiltered = resultprices.entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            float phqp = resultprices.Entries.Where(item => item.hq == true).Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
+            float punfiltered = resultprices.Entries.Select(item => (float)item.sellPrice).FirstOrDefault(float.NaN);
 
             lqp = Util.MinWithoutNan(hlqp, punfiltered);
             hqp = Util.MinWithoutNan(hhqp, punfiltered);

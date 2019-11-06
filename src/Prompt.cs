@@ -616,7 +616,7 @@ public static class Prompt
             if (item.IsMarketable())
             {
                 Dbg.Inf("  Pricing:");
-                foreach (var market in Market.Prices(item.Key, Market.Latency.Immediate).entries)
+                foreach (var market in Market.Prices(item.Key, Market.Latency.Immediate).Entries)
                 {
                     Dbg.Inf($"    {market.sellPrice}: {market.stack}x {(market.hq ? "HQ" : "")}");
                 }

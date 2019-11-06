@@ -1,18 +1,18 @@
 
-using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 public static class JsonCache
 {
     public static Dictionary<string, object> s_Cache = new Dictionary<string, object>();
 
-    public static T Retrieve<T>(string input) where T : class
+    public static T Retrieve<T>(string input, Func<string, T> creator) where T : class
     {
         var result = s_Cache.TryGetValue(input) as T;
 
         if (result == null)
         {
-            result = JsonConvert.DeserializeObject<T>(input);
+            result = creator(input);
 
             s_Cache[input] = result;
 

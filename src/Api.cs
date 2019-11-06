@@ -1,4 +1,5 @@
 
+using Newtonsoft.Json;
 using System;
 
 public static class Api
@@ -53,10 +54,10 @@ public static class Api
             retrievalTime = DateTimeOffset.Now;
         }
 
-        return JsonCache.Retrieve<Cherenkov.Session.MarketHistoryResponse>(result);
+        return JsonCache.Retrieve<Cherenkov.Session.MarketHistoryResponse>(result, json => JsonConvert.DeserializeObject<Cherenkov.Session.MarketHistoryResponse>(json));
     }
 
-    public static Cherenkov.Session.MarketPriceResponse RetrievePricing(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
+    public static Market.Pricing RetrievePricing(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
     {
         retrievalTime = DateTimeOffset.MinValue;
 
@@ -76,10 +77,10 @@ public static class Api
             retrievalTime = DateTimeOffset.Now;
         }
         
-        return JsonCache.Retrieve<Cherenkov.Session.MarketPriceResponse>(result);
+        return JsonCache.Retrieve<Market.Pricing>(result, json => new Market.Pricing(JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(json)));
     }
 
-    public static Cherenkov.Session.MarketPriceResponse RetrievePricing(int id, TimeSpan invalidation)
+    public static Market.Pricing RetrievePricing(int id, TimeSpan invalidation)
     {
         DateTimeOffset _;
         return RetrievePricing(id, invalidation, out _);
