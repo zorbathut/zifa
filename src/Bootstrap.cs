@@ -75,7 +75,7 @@ public static class Bootstrap
     public static void DoGCScripAnalysis()
     {
         var results = new List<Result>();
-        var inspected = new HashSet<int>();
+        var inspected = new HashSet<SaintCoinach.Xiv.Item>();
         foreach (var scripEntry in Db.GetSheet2<SaintCoinach.Xiv.GCScripShopItem>())
         {
             var item = scripEntry.Item;
@@ -89,14 +89,12 @@ public static class Bootstrap
             {
                 continue;
             }
-            
-            int id = item.Key;
 
-            if (!inspected.Contains(id))
+            if (!inspected.Contains(item))
             {
-                inspected.Add(id);
+                inspected.Add(item);
 
-                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false, Market.Latency.Standard) / scripEntry.GCSealsCost, id, 40000 / scripEntry.GCSealsCost, Market.Latency.Standard);
+                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard) / scripEntry.GCSealsCost, item, 40000 / scripEntry.GCSealsCost, Market.Latency.Standard);
 
                 results.Add(new Result() { gps = gps, name = item.Name });
             }
@@ -161,10 +159,10 @@ public static class Bootstrap
     public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
     {
         var result = recipe.ResultItem;
-        float expectedRevenue = Commerce.ValueSell(result.Key, hq, latency) * recipe.ResultCount;
+        float expectedRevenue = Commerce.ValueSell(result, hq, latency) * recipe.ResultCount;
         
         // Build our ingredient lists
-        var ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item.Key, latency) }).ToArray();
+        var ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item, latency) }).ToArray();
 
         int toSell = 0;
         float totalCost = 0;
@@ -175,7 +173,7 @@ public static class Bootstrap
                 bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
 
                 // This is the amount that we're allowed to sell per day
-                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result.Key, latency), Commerce.MarketExpectedStackSale(result.Key, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
+                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result, latency), Commerce.MarketExpectedStackSale(result, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
                 if (!allowBulkProduction)
                 {
                     maxSellPerDay = Math.Min(maxSellPerDay, 1);
@@ -224,7 +222,7 @@ public static class Bootstrap
         
         readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
-        if (latency == Market.Latency.Immediate && Market.IsSelling(result.Key, People))
+        if (latency == Market.Latency.Immediate && Market.IsSelling(result, People))
         {
             readable = readable.Replace("\n", "    \n");
         }
@@ -323,7 +321,7 @@ public static class Bootstrap
             float tcost = 0;
             foreach (var ingredient in recipe.Ingredients)
             {
-                float cost = Commerce.ValueBuy(ingredient.Item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out string source);
+                float cost = Commerce.ValueBuy(ingredient.Item, false, Commerce.TransactionType.Immediate, Market.Latency.Standard, out string source);
                 readable += "\n" + $"  {ingredient.Item.Name}: buy from {source} for {cost:F0}x{ingredient.Count}";
 
                 tcost += ingredient.Count * cost;

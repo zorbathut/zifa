@@ -158,9 +158,9 @@ public static class Market
         CacheOnly,
     }
 
-    private static TimeSpan AuctionInvalidationDuration(int id)
+    private static TimeSpan AuctionInvalidationDuration(SaintCoinach.Xiv.Item item)
     {
-        var cached = History(id, Latency.CacheOnly, out DateTimeOffset retrievalTime);
+        var cached = History(item, Latency.CacheOnly, out DateTimeOffset retrievalTime);
 
         TimeSpan invalidationTime;
         if (cached != null)
@@ -180,7 +180,7 @@ public static class Market
             var lastDate = DateTimeOffset.FromUnixTimeSeconds(cached.history.Last().buyRealDate / 1000);
             var halfSpan = TimeSpan.FromSeconds((firstDate - lastDate).TotalSeconds / 4);
 
-            var medianAge = TimeSpan.FromSeconds(cached.history.Select(item => new Util.Element { value = firstDate.ToUnixTimeSeconds() - item.buyRealDate / 1000, count = item.stack }).Median());
+            var medianAge = TimeSpan.FromSeconds(cached.history.Select(history => new Util.Element { value = firstDate.ToUnixTimeSeconds() - history.buyRealDate / 1000, count = history.stack }).Median());
 
             invalidationTime = TimeSpan.FromSeconds(MathUtil.Clamp(Math.Min(halfSpan.TotalSeconds, medianAge.TotalSeconds), 60 * 60 * 24, 60 * 60 * 24 * 14));
         }
@@ -192,17 +192,17 @@ public static class Market
         return invalidationTime;
     }
 
-    public static Cherenkov.Session.MarketHistoryResponse History(int id, Latency latency)
+    public static Cherenkov.Session.MarketHistoryResponse History(SaintCoinach.Xiv.Item item, Latency latency)
     {
         DateTimeOffset _;
-        return History(id, latency, out _);
+        return History(item, latency, out _);
     }
 
-    private static TimeSpan GetCacheTime(int id, Latency latency)
+    private static TimeSpan GetCacheTime(SaintCoinach.Xiv.Item item, Latency latency)
     {
         if (latency == Latency.Standard)
         {
-            return AuctionInvalidationDuration(id);
+            return AuctionInvalidationDuration(item);
         }
         else if (latency == Latency.Immediate)
         {
@@ -214,35 +214,35 @@ public static class Market
         }
 
         Dbg.Err("what's going on with a bad latency?");
-        return GetCacheTime(id, Latency.Standard);
+        return GetCacheTime(item, Latency.Standard);
     }
 
-    public static Cherenkov.Session.MarketHistoryResponse History(int id, Latency latency, out DateTimeOffset retrievalTime)
+    public static Cherenkov.Session.MarketHistoryResponse History(SaintCoinach.Xiv.Item item, Latency latency, out DateTimeOffset retrievalTime)
     {
-        if (!Db.Item(id).IsMarketable())
+        if (!item.IsMarketable())
         {
             retrievalTime = DateTimeOffset.Now;
             return null;
         }
 
-        var apiresult = Api.RetrieveHistory(id, GetCacheTime(id, latency), out retrievalTime);
+        var apiresult = Api.RetrieveHistory(item, GetCacheTime(item, latency), out retrievalTime);
         
         return apiresult;
     }
 
-    public static Pricing Prices(int id, Latency latency)
+    public static Pricing Prices(SaintCoinach.Xiv.Item item, Latency latency)
     {
-        if (!Db.Item(id).IsMarketable())
+        if (!item.IsMarketable())
         {
-            return new Pricing(null, Db.Item(id));
+            return new Pricing(null, item);
         }
 
-        return Api.RetrievePricing(id, GetCacheTime(id, latency));
+        return Api.RetrievePricing(item, GetCacheTime(item, latency));
     }
 
-    public static bool IsSelling(int id, string[] people)
+    public static bool IsSelling(SaintCoinach.Xiv.Item item, string[] people)
     {
-        var prices = Prices(id, Latency.Immediate);
+        var prices = Prices(item, Latency.Immediate);
 
         foreach (var price in prices.Entries)
         {

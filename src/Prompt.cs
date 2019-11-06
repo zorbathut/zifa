@@ -371,8 +371,8 @@ public static class Prompt
                 // Always include this, because this is how we calculate vendor prices
                 {
                     yield return new PurchasableOption() { name = label, evaluator = immediate => {
-                        float valueBase = Commerce.ValueSell(reward.Item.Key, reward.IsHq, immediate ? Market.Latency.Immediate : Market.Latency.Standard) * reward.Count;
-                        float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item.Key, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
+                        float valueBase = Commerce.ValueSell(reward.Item, reward.IsHq, immediate ? Market.Latency.Immediate : Market.Latency.Standard) * reward.Count;
+                        float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
                         return new Util.Twopass.Result() { value = valueAdjusted / cost, display = label };
                     }};
                 }
@@ -445,7 +445,7 @@ public static class Prompt
                 }
                 else
                 {
-                    float value = Commerce.ValueBuy(cost.Item.Key, cost.IsHq, Commerce.TransactionType.Immediate, Market.Latency.Standard) * cost.Count;
+                    float value = Commerce.ValueBuy(cost.Item, cost.IsHq, Commerce.TransactionType.Immediate, Market.Latency.Standard) * cost.Count;
                     yield return new Bootstrap.Result() { gps = value / reward, name = label };
                 }
             }
@@ -455,7 +455,7 @@ public static class Prompt
     public static void GatherpointCalculator(string[] tokens)
     {
         var prospective = new List<SaintCoinach.Xiv.GatheringPointBase>();
-        var items = new HashSet<int>();
+        var items = new HashSet<SaintCoinach.Xiv.Item>();
         foreach (var point in Db.GetSheet<SaintCoinach.Xiv.GatheringPointBase>())
         {
             bool valid = true;
@@ -488,14 +488,14 @@ public static class Prompt
                 {
                     if (gitem.Item.Key != 0)
                     {
-                        items.Add(gitem.Item.Key);
+                        items.Add(gitem.Item as SaintCoinach.Xiv.Item);
                     }
                 }
             }
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        foreach (var item in items.Select(id => Tuple.Create(Db.Item(id), Commerce.MarketProfitAdjuster(Commerce.ValueSell(id, false, Market.Latency.Standard), id, 30, Market.Latency.Standard))).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.Select(item => Tuple.Create(item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard), item, 30, Market.Latency.Standard))).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -555,7 +555,7 @@ public static class Prompt
         {
             bool lim = !unlimited.Contains(item);
             var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
-            float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item.Key, false, latency), item.Key, lim ? 10 : 99, latency);
+            float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, latency), item, lim ? 10 : 99, latency);
             string badge = lim ? "LIM" : "   ";
             return new Util.Twopass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
         } };
@@ -575,17 +575,17 @@ public static class Prompt
             Dbg.Inf("");
             Dbg.Inf($"{item.Name}:");
             Dbg.Inf($"  Compiled market data:");
-            Dbg.Inf($"    Immediate: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Immediate HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Longterm: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Fastsell: {Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Fastsell HQ: {Commerce.ValueMarket(item.Key, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Sales per day: {Commerce.MarketSalesPerDay(item.Key, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Expected stack sale: {Commerce.MarketExpectedStackSale(item.Key, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item.Key, 1, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item.Key, 10, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item.Key, 99, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item.Key, item.StackSize, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Immediate: {Commerce.ValueMarket(item, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Immediate HQ: {Commerce.ValueMarket(item, true, Commerce.TransactionType.Immediate, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Longterm: {Commerce.ValueMarket(item, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Fastsell: {Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Fastsell HQ: {Commerce.ValueMarket(item, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Sales per day: {Commerce.MarketSalesPerDay(item, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Expected stack sale: {Commerce.MarketExpectedStackSale(item, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item, 1, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item, 10, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item, 99, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item, item.StackSize, Market.Latency.Immediate)}");
             Dbg.Inf("");
 
             bool recipeHeadered = false;
@@ -603,10 +603,10 @@ public static class Prompt
                 }
             }
 
-            if (Commerce.SellersForItem(item.Key).Any())
+            if (Commerce.SellersForItem(item).Any())
             {
                 Dbg.Inf($"  Vendors ({item.Ask}g):");
-                foreach (var seller in Commerce.SellersForItem(item.Key))
+                foreach (var seller in Commerce.SellersForItem(item))
                 {
                     Dbg.Inf($"    {seller.ToZifaString()}");
                 }
@@ -616,14 +616,14 @@ public static class Prompt
             if (item.IsMarketable())
             {
                 Dbg.Inf("  Pricing:");
-                foreach (var market in Market.Prices(item.Key, Market.Latency.Immediate).Entries)
+                foreach (var market in Market.Prices(item, Market.Latency.Immediate).Entries)
                 {
                     Dbg.Inf($"    {market.sellPrice}: {market.stack}x {(market.hq ? "HQ" : "")}");
                 }
 
                 Dbg.Inf("");
                 Dbg.Inf("  History:");
-                foreach (var market in Market.History(item.Key, Market.Latency.Immediate).history)
+                foreach (var market in Market.History(item, Market.Latency.Immediate).history)
                 {
                     Dbg.Inf($"    {market.sellPrice}: {market.stack}x {(market.hq ? "HQ" : "")} {(DateTimeOffset.Now - DateTimeOffset.FromUnixTimeMilliseconds(market.buyRealDate)).TotalDays:F2}d");
                 }
@@ -693,7 +693,7 @@ public static class Prompt
     }
     private static void DoItemsetComparison(IEnumerable<ItemsetOption> items)
     {
-        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item.Key, reward.hq, Market.Latency.Standard), reward.item.Key, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item, reward.hq, Market.Latency.Standard), reward.item, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -706,22 +706,21 @@ public static class Prompt
     }
     public static void DoVendorMarketAnalysis()
     {
-        int[] marketables = Commerce.Marketables().ToArray();
+        var marketables = Commerce.Marketables().ToArray();
         var results = new List<MarketInfo>();
 
         for (int i = 0; i < marketables.Length; ++i)
         {
             Dbg.Inf($"{i}/{marketables.Length}");
 
-            var id = marketables[i];
-            var item = Db.Item(id);
+            var item = marketables[i];
             if (!item.IsMarketable())
             {
                 continue;
             }
 
             int stack = Math.Min(item.StackSize, 99);
-            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(id, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard) - item.Ask, id, stack, Market.Latency.Standard);
+            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard) - item.Ask, item, stack, Market.Latency.Standard);
 
             results.Add(new MarketInfo() { profit = profit * stack, text = $"{Math.Round(profit * stack)}: {item.Name}"});
         }
@@ -788,7 +787,6 @@ public static class Prompt
         IEnumerable<Util.Twopass.Input> processors = tasks.Select<SaintCoinach.Xiv.RetainerTask, Util.Twopass.Input>(task => new Util.Twopass.Input() { evaluator = immediate =>
         {
             var item = task.Items.First();
-            int itemId = item.Key;
 
             // Gotta figure out how many we expect to get.
             var parameter = task["RetainerTaskParameter"] as SaintCoinach.Xiv.XivRow;
@@ -835,12 +833,12 @@ public static class Prompt
             if (item.CanBeHq)
             {
                 // 20% HQ; vague estimate
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, true, Commerce.TransactionType.Fastsell, latency), itemId, throughput * 0.2f, latency) * quantity * 0.2f;
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, latency), itemId, throughput * 0.8f, latency) * quantity * 0.8f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, true, Commerce.TransactionType.Fastsell, latency), item, throughput * 0.2f, latency) * quantity * 0.2f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, throughput * 0.8f, latency) * quantity * 0.8f;
             }
             else
             {
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(itemId, false, Commerce.TransactionType.Fastsell, latency), itemId, throughput, latency) * quantity;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, throughput, latency) * quantity;
             }
 
             return new Util.Twopass.Result() { value = profit, display = $"{profit}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
@@ -859,7 +857,7 @@ public static class Prompt
     private static string CraftSourceFormatterMarket(SaintCoinach.Xiv.Item item, Market.Pricing.Bracket bracket)
     {
         string suffix = "";
-        float expected = Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Standard);
+        float expected = Commerce.ValueMarket(item, false, Commerce.TransactionType.Longterm, Market.Latency.Standard);
         if (bracket.marketMax > expected * 1.2f)
         {
             suffix = $" (expected ~{expected:F0}g/ea)";
@@ -950,8 +948,8 @@ public static class Prompt
             bool careAboutHQ = false;
             if (recipe.ResultItem.CanBeHq)
             {
-                float basePrice = Commerce.ValueSell(recipe.ResultItem.Key, false, Market.Latency.Standard);
-                float hqPrice = Commerce.ValueSell(recipe.ResultItem.Key, true, Market.Latency.Standard);
+                float basePrice = Commerce.ValueSell(recipe.ResultItem, false, Market.Latency.Standard);
+                float hqPrice = Commerce.ValueSell(recipe.ResultItem, true, Market.Latency.Standard);
 
                 careAboutHQ = !(hqPrice - 100 <= basePrice || hqPrice / 1.2f <= basePrice);
             }
@@ -979,7 +977,7 @@ public static class Prompt
             var remaining = new Dictionary<Market.Pricing, int>();
             foreach (var kvp in Sourced)
             {
-                remaining[Market.Prices(kvp.Key.Key, Market.Latency.Immediate)] = kvp.Value;
+                remaining[Market.Prices(kvp.Key, Market.Latency.Immediate)] = kvp.Value;
             }
 
             {
@@ -1008,9 +1006,9 @@ public static class Prompt
                 bool found = false;
                 foreach (var item in remaining)
                 {
-                    if (Commerce.SellersForItem(item.Key.Item.Key).Count() == 1)
+                    if (Commerce.SellersForItem(item.Key.Item).Count() == 1)
                     {
-                        remaining = SubsumeItems(remaining, Commerce.SellersForItem(item.Key.Item.Key).First(), ref result);
+                        remaining = SubsumeItems(remaining, Commerce.SellersForItem(item.Key.Item).First(), ref result);
                         found = true;
                         break;
                     }
@@ -1027,7 +1025,7 @@ public static class Prompt
                 var npcCounts = new Dictionary<SaintCoinach.Xiv.ENpc, int>();
                 foreach (var item in remaining)
                 {
-                    foreach (var npc in Commerce.SellersForItem(item.Key.Item.Key))
+                    foreach (var npc in Commerce.SellersForItem(item.Key.Item))
                     {
                         if (!npcCounts.ContainsKey(npc))
                         {
@@ -1065,7 +1063,7 @@ public static class Prompt
         var newRemaining = new Dictionary<Market.Pricing, int>();
         foreach (var item in remaining.OrderBy(item => item.Key.Item.Name))
         {
-            if (Commerce.SellersForItem(item.Key.Item.Key).Contains(npc))
+            if (Commerce.SellersForItem(item.Key.Item).Contains(npc))
             {
                 result += CraftSourceFormatterVendor(item.Key.Item, item.Value);
             }

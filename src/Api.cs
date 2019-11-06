@@ -34,11 +34,11 @@ public static class Api
         s_InitTime += time;
     }
 
-    public static Cherenkov.Session.MarketHistoryResponse RetrieveHistory(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
+    public static Cherenkov.Session.MarketHistoryResponse RetrieveHistory(SaintCoinach.Xiv.Item item, TimeSpan invalidation, out DateTimeOffset retrievalTime)
     {
         retrievalTime = DateTimeOffset.MinValue;
 
-        string cacheId = $"{id}:history";
+        string cacheId = $"{item.Key}:history";
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
@@ -49,7 +49,7 @@ public static class Api
 
             InitCherenkov();
 
-            result = s_Cherenkov.GetMarketHistory(id);
+            result = s_Cherenkov.GetMarketHistory(item.Key);
             Cache.StoreCacheEntry(cacheId, result);
             retrievalTime = DateTimeOffset.Now;
         }
@@ -57,11 +57,11 @@ public static class Api
         return JsonCache.Retrieve<Cherenkov.Session.MarketHistoryResponse>(result, json => JsonConvert.DeserializeObject<Cherenkov.Session.MarketHistoryResponse>(json));
     }
 
-    public static Market.Pricing RetrievePricing(int id, TimeSpan invalidation, out DateTimeOffset retrievalTime)
+    public static Market.Pricing RetrievePricing(SaintCoinach.Xiv.Item item, TimeSpan invalidation, out DateTimeOffset retrievalTime)
     {
         retrievalTime = DateTimeOffset.MinValue;
 
-        string cacheId = $"{id}:pricing";
+        string cacheId = $"{item.Key}:pricing";
         string result = Cache.GetCacheEntry(cacheId, invalidation, out retrievalTime);
         if (result == null)
         {
@@ -72,17 +72,17 @@ public static class Api
 
             InitCherenkov();
 
-            result = s_Cherenkov.GetMarketPrices(id);
+            result = s_Cherenkov.GetMarketPrices(item.Key);
             Cache.StoreCacheEntry(cacheId, result);
             retrievalTime = DateTimeOffset.Now;
         }
         
-        return JsonCache.Retrieve<Market.Pricing>(result, json => new Market.Pricing(JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(json), Db.Item(id)));
+        return JsonCache.Retrieve<Market.Pricing>(result, json => new Market.Pricing(JsonConvert.DeserializeObject<Cherenkov.Session.MarketPriceResponse>(json), item));
     }
 
-    public static Market.Pricing RetrievePricing(int id, TimeSpan invalidation)
+    public static Market.Pricing RetrievePricing(SaintCoinach.Xiv.Item item, TimeSpan invalidation)
     {
         DateTimeOffset _;
-        return RetrievePricing(id, invalidation, out _);
+        return RetrievePricing(item, invalidation, out _);
     }
 }
