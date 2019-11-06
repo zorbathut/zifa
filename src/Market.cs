@@ -36,6 +36,14 @@ public static class Market
             }
         }
 
+        public SaintCoinach.Xiv.Item Item
+        {
+            get
+            {
+                return item;
+            }
+        }
+
         public Pricing(Cherenkov.Session.MarketPriceResponse pricing, SaintCoinach.Xiv.Item item)
         {
             this.pricing = pricing;

@@ -851,15 +851,27 @@ public static class Prompt
 
     private static Dictionary<SaintCoinach.Xiv.Item, int> Sourced = new Dictionary<SaintCoinach.Xiv.Item, int>();
 
-    private static string CraftSourceFormatter(SaintCoinach.Xiv.Item item, int count, float gil)
+    private static string CraftSourceFormatterVendor(SaintCoinach.Xiv.Item item, int count)
     {
-        if (gil > 0)
+        return $"  {item.Name} x{count} ({item.VendorPrice():F0}g/ea)\n";
+    }
+
+    private static string CraftSourceFormatterMarket(SaintCoinach.Xiv.Item item, Market.Pricing.Bracket bracket)
+    {
+        string suffix = "";
+        float expected = Commerce.ValueMarket(item.Key, false, Commerce.TransactionType.Longterm, Market.Latency.Standard);
+        if (bracket.marketMax > expected * 1.2f)
         {
-            return $"  {item.Name} x{count} (~{gil:F0}g ea)\n";
+            suffix = $" (expected ~{expected:F0}g/ea)";
+        }
+
+        if (bracket.marketMin == bracket.marketMax)
+        {
+            return $"  {item.Name} x{bracket.marketCount} ({bracket.marketMin:F0}g/ea){suffix}\n";
         }
         else
         {
-            return $"  {item.Name} x{count}\n";
+            return $"  {item.Name} x{bracket.marketCount} ({bracket.marketMin:F0}-{bracket.marketMax:F0}g/ea){suffix}\n";
         }
     }
 
@@ -964,21 +976,31 @@ public static class Prompt
         {
             string result = "Market-procured:\n";
 
-            var remaining = new HashSet<SaintCoinach.Xiv.Item>();
-
-            foreach (var itemcombo in Sourced.OrderBy(itemcombo => itemcombo.Key.Name).ProgressBar(false))
+            var remaining = new Dictionary<Market.Pricing, int>();
+            foreach (var kvp in Sourced)
             {
-                // First filter out the market purchases
+                remaining[Market.Prices(kvp.Key.Key, Market.Latency.Immediate)] = kvp.Value;
+            }
 
-                float value = Commerce.ValueBuy(itemcombo.Key.Key, false, Commerce.TransactionType.Immediate, Market.Latency.Immediate, out var source);
-                if (source == "market")
+            {
+                var nextpass = new Dictionary<Market.Pricing, int>();
+                foreach (var itemcombo in remaining.OrderBy(itemcombo => itemcombo.Key.Item.Name).ProgressBar(false))
                 {
-                    result += CraftSourceFormatter(itemcombo.Key, itemcombo.Value, value);
+                    // First filter out the market purchases
+
+                    float cost = itemcombo.Key.PriceForRange(0, itemcombo.Value, out var bracket);
+
+                    if (bracket.containsMarket)
+                    {
+                        result += CraftSourceFormatterMarket(itemcombo.Key.Item, bracket);
+                    }
+
+                    if (bracket.containsVendor)
+                    {
+                        nextpass.Add(itemcombo.Key, bracket.vendorCount);
+                    }
                 }
-                else
-                {
-                    remaining.Add(itemcombo.Key);
-                }
+                remaining = nextpass;
             }
 
             while (true)
@@ -986,9 +1008,9 @@ public static class Prompt
                 bool found = false;
                 foreach (var item in remaining)
                 {
-                    if (Commerce.SellersForItem(item.Key).Count() == 1)
+                    if (Commerce.SellersForItem(item.Key.Item.Key).Count() == 1)
                     {
-                        remaining = SubsumeItems(remaining, Sourced, Commerce.SellersForItem(item.Key).First(), ref result);
+                        remaining = SubsumeItems(remaining, Commerce.SellersForItem(item.Key.Item.Key).First(), ref result);
                         found = true;
                         break;
                     }
@@ -1005,7 +1027,7 @@ public static class Prompt
                 var npcCounts = new Dictionary<SaintCoinach.Xiv.ENpc, int>();
                 foreach (var item in remaining)
                 {
-                    foreach (var npc in Commerce.SellersForItem(item.Key))
+                    foreach (var npc in Commerce.SellersForItem(item.Key.Item.Key))
                     {
                         if (!npcCounts.ContainsKey(npc))
                         {
@@ -1021,7 +1043,7 @@ public static class Prompt
                     result += "\nCan't be found:\n";
                     foreach (var item in remaining)
                     {
-                        result += CraftSourceFormatter(item, Sourced[item], -1);
+                        result += CraftSourceFormatterVendor(item.Key.Item, item.Value);
                     }
                     break;
                 }
@@ -1029,27 +1051,27 @@ public static class Prompt
                 var bestNpc = npcCounts.MaxBy(kv => kv.Value * 100000 + Commerce.ItemCountInShop(kv.Key)).Key;
 
                 // Grab things
-                remaining = SubsumeItems(remaining, Sourced, bestNpc, ref result);
+                remaining = SubsumeItems(remaining, bestNpc, ref result);
             }
 
             Dbg.Inf(result);
         }
     }
 
-    private static HashSet<SaintCoinach.Xiv.Item> SubsumeItems(HashSet<SaintCoinach.Xiv.Item> remaining, Dictionary<SaintCoinach.Xiv.Item, int> items, SaintCoinach.Xiv.ENpc npc, ref string result)
+    private static Dictionary<Market.Pricing, int> SubsumeItems(Dictionary<Market.Pricing, int> remaining, SaintCoinach.Xiv.ENpc npc, ref string result)
     {
         result += $"\n{npc.ToZifaString()}:\n";
 
-        var newRemaining = new HashSet<SaintCoinach.Xiv.Item>();
-        foreach (var item in remaining.OrderBy(item => item.Name))
+        var newRemaining = new Dictionary<Market.Pricing, int>();
+        foreach (var item in remaining.OrderBy(item => item.Key.Item.Name))
         {
-            if (Commerce.SellersForItem(item.Key).Contains(npc))
+            if (Commerce.SellersForItem(item.Key.Item.Key).Contains(npc))
             {
-                result += CraftSourceFormatter(item, items[item], -1);
+                result += CraftSourceFormatterVendor(item.Key.Item, item.Value);
             }
             else
             {
-                newRemaining.Add(item);
+                newRemaining.Add(item.Key, item.Value);
             }
         }
 
