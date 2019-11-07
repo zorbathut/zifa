@@ -144,7 +144,7 @@ public static class Market
             // it's OK if this NaN's us
             if (quantityRemaining > 0)
             {
-                moneySpent += quantityRemaining * (int)vendorPrice;
+                moneySpent += quantityRemaining * vendorPrice;
             }
 
             return moneySpent;
