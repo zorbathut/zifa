@@ -252,13 +252,13 @@ public static class Prompt
                 else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
                 {
                     Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
-                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 37, maxlevel = 41, craftsmanship = 189, control = 189 },
+                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 37, maxlevel = 41, craftsmanship = 194, control = 205 },
                         new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 25, maxlevel = 29, craftsmanship = 152, control = 156 },
-                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 139, control = 139 },
+                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 25, maxlevel = 29, craftsmanship = 152, control = 166 },
                         new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 23, maxlevel = 27, craftsmanship = 144, control = 143 },
-                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 20, maxlevel = 24, craftsmanship = 115, control = 124 },
-                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 72, maxlevel = 76, craftsmanship = 1489, control = 1304 },
-                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 21, maxlevel = 25, craftsmanship = 137, control = 124 },
+                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 26, maxlevel = 30, craftsmanship = 154, control = 167 },
+                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = 2057, control = 2015 },
+                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 29, maxlevel = 33, craftsmanship = 151, control = 171 },
                         new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
                     }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
                 }
