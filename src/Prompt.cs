@@ -826,7 +826,7 @@ public static class Prompt
                 quantity = normal.AsInt32("Quantity[0]");
             }
 
-            int throughput = quantity * 10; // penalize things that don't have enough daily sales
+            int throughput = quantity * 4; // penalize things that don't have enough daily sales
 
             var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
             float profit = 0;

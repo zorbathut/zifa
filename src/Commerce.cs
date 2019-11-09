@@ -137,7 +137,12 @@ public static class Commerce
             return 0;
         }
 
-        float salesPerSlotDay = Math.Min(MarketSalesPerDay(item, latency), MarketExpectedStackSale(item, latency));
+        // divide by three because historically I cannot get every sale
+        // maybe this should be based on the number of sellers? think more about this
+        float expectedMySalesPerDay = MarketSalesPerDay(item, latency) / 3;
+        float maximumStackSize = MarketExpectedStackSale(item, latency);
+
+        float salesPerSlotDay = Math.Min(expectedMySalesPerDay, maximumStackSize);
 
         float daysToSell = acquired / salesPerSlotDay;
 
