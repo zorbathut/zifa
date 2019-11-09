@@ -234,7 +234,7 @@ public static class Prompt
                         DoRetainerGatherAnalysis("dow", 420);
                         DoRetainerGatherAnalysis("btn", 10000);
                         DoRetainerGatherAnalysis("min", 709);
-                        DoRetainerGatherAnalysis("fsh", 10000);
+                        DoRetainerGatherAnalysis("fsh", 91);
                     }
                 }
                 else if (instr == "retainergathermax")
