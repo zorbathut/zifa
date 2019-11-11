@@ -108,7 +108,6 @@ public static class Bootstrap
         }
     }
 
-    readonly static string[] People = new string[] {"***REMOVED***", "***REMOVED***", "***REMOVED***"};
     private struct IngredientData
     {
         public SaintCoinach.Xiv.Item item;
@@ -222,7 +221,7 @@ public static class Bootstrap
         
         readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
-        if (latency == Market.Latency.Immediate && Market.IsSelling(result, People))
+        if (latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
             readable = readable.Replace("\n", "    \n");
         }

@@ -240,14 +240,14 @@ public static class Market
         return Api.RetrievePricing(item, GetCacheTime(item, latency));
     }
 
-    public static bool IsSelling(SaintCoinach.Xiv.Item item, string[] people)
+    public static bool IsSelling(SaintCoinach.Xiv.Item item)
     {
         var prices = Prices(item, Latency.Immediate);
 
         foreach (var price in prices.Entries)
         {
             string poster = price.sellRetainerName;
-            if (people.Contains(poster))
+            if (ZifaConfigDefs.Global.retainers.Contains(poster))
             {
                 return true;
             }
