@@ -223,7 +223,7 @@ public static class Bootstrap
 
         if (latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
-            readable = readable.Replace("\n", "    \n");
+            readable = readable.Replace("\n", "\n    ");
         }
 
         return new Util.Twopass.Result() { value = adjustedProfit, display = readable };
