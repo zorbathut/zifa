@@ -17,6 +17,7 @@ public static class Prompt
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RecipeAnalysisSegment = new Regex("^recipeanalysissegment (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+) (?<role>[a-zA-Z]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisLevel = new Regex("^recipeanalysislevel (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisMax = new Regex("^recipeanalysismax (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
@@ -58,6 +59,7 @@ public static class Prompt
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
                 Dbg.Inf("    retainergathermax - does various retainergather queries that assume godlike retainers of infinite power");
                 Dbg.Inf("    recipeanalysiscache (solo) (bulk) - does various recipe analysis queries that I've predefined to follow my own characters");
+                Dbg.Inf("    recipeanalysissegment (solo) (bulk) (level) (role) - does various recipe analysis queries assuming you can craft everything up to a given level in a single profession");
                 Dbg.Inf("    recipeanalysislevel (solo) (bulk) (level) - does various recipe analysis queries assuming you can craft everything up to a given level");
                 Dbg.Inf("    recipeanalysismax (solo) (bulk) - does various recipe analysis queries that assume godlike crafters of infinite power");
                 Dbg.Inf("");
@@ -261,6 +263,13 @@ public static class Prompt
                         new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 29, maxlevel = 33, craftsmanship = 151, control = 171 },
                         new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 35, maxlevel = 39, craftsmanship = 183, control = 186 },
                     }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
+                }
+                else if (RecipeAnalysisSegment.Match(instr) is var rasmatch && rasmatch.Success)
+                {
+                    int level = int.Parse(rasmatch.Groups["level"].Value);
+                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
+                        new Bootstrap.CraftingInfo() { name = rasmatch.Groups["role"].Value, minlevel = 1, maxhqlevel = level, maxlevel = level, craftsmanship = int.MaxValue, control = int.MaxValue },
+                    }, Bootstrap.SortMethod.Profit, bool.Parse(rasmatch.Groups["solo"].Value), bool.Parse(rasmatch.Groups["bulk"].Value));
                 }
                 else if (RecipeAnalysisLevel.Match(instr) is var ralmatch && ralmatch.Success)
                 {
