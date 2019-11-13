@@ -37,6 +37,7 @@ public static class Cache
         var cacheage = DateTimeOffset.Now - cachetimestamp;
         if (cacheage > invalidation)
         {
+            //Dbg.Inf($"Failed {key} for reasons of cache timing; looking for {invalidation}, cache is currently {cacheage} from timestamp {cachetimestamp}");
             return null;
         }
 
@@ -53,6 +54,8 @@ public static class Cache
 
     public static void StoreCacheEntry(string key, string value)
     {
+        //Dbg.Inf($"Storing {key} with timestamp {DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.Now.ToUnixTimeSeconds())}");
+
         var cmd = new SQLiteCommand("INSERT OR REPLACE INTO cache (key, time, value) VALUES (@key, @time, @value)", DbConnection);
         cmd.Parameters.AddWithValue("@key", key);
         cmd.Parameters.AddWithValue("@time", DateTimeOffset.Now.ToUnixTimeSeconds());
