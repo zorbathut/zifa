@@ -157,6 +157,8 @@ public static class Bootstrap
 
     public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
     {
+        const float expectedProfitMargin = 1.5f;
+
         var result = recipe.ResultItem;
         float expectedRevenue = Commerce.ValueSell(result, hq, latency) * recipe.ResultCount;
         
@@ -197,7 +199,7 @@ public static class Bootstrap
                     // we actually have no items here
                     break;
                 }
-                else if (toSell == 0 || itemCost < expectedRevenue * 0.8f)
+                else if (toSell == 0 || itemCost * expectedProfitMargin < expectedRevenue)
                 {
                     totalCost += itemCost;
                     toSell++;
