@@ -55,11 +55,12 @@ public static class Commerce
 
             var resultprices = Market.Prices(item, latency);
 
+            float plqp = resultprices.Entries.Where(entry => entry.hq == false).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
             float phqp = resultprices.Entries.Where(entry => entry.hq == true).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
             float punfiltered = resultprices.Entries.Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
 
-            lqp = Util.MinWithoutNan(hlqp, punfiltered);
-            hqp = Util.MinWithoutNan(hhqp, punfiltered);
+            lqp = Util.MinWithoutNan(hlqp, plqp);
+            hqp = Util.MinWithoutNan(hhqp, phqp);
             unfiltered = Util.MinWithoutNan(hunfiltered, punfiltered);
         }
         else
