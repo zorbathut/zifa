@@ -15,7 +15,7 @@ public static class Prompt
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex Overmeld = new Regex("^overmeld (?<slots>[0-9]+) (?<cp>[0-9]+) (?<crafts>[0-9]+) (?<control>[0-9]+) (?<craftsval>[0-9]+) (?<controlval>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex Overmeld = new Regex("^overmeld (?<slots>[0-9]+) (?<cp>[0-9]+) (?<crafts>[0-9]+) (?<control>[0-9]+)( (?<craftsval>[0-9]+) (?<controlval>[0-9]+))?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
@@ -57,7 +57,7 @@ public static class Prompt
                 Dbg.Inf("    gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
                 Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
                 Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
-                Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) (craftsval) (controlval) - minmaxes crafting overmeld values");
+                Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) [(craftsval) (controlval)] - minmaxes crafting overmeld values");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
@@ -309,8 +309,8 @@ public static class Prompt
                         int.Parse(omatch.Groups["cp"].Value),
                         int.Parse(omatch.Groups["crafts"].Value),
                         int.Parse(omatch.Groups["control"].Value),
-                        int.Parse(omatch.Groups["craftsval"].Value),
-                        int.Parse(omatch.Groups["controlval"].Value));
+                        omatch.Groups["craftsval"].Length > 0 ? int.Parse(omatch.Groups["craftsval"].Value) : 50000,
+                        omatch.Groups["controlval"].Length > 0 ? int.Parse(omatch.Groups["controlval"].Value) : 200000);
                 }
                 else
                 {
