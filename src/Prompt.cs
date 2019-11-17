@@ -1209,12 +1209,12 @@ public static class Prompt
         overmeldStatus.allowed = new int[Enum.GetNames(typeof(Stat)).Length];
         overmeldStatus.produced = new int[Enum.GetNames(typeof(Stat)).Length];
 
-        overmeldStatus.values[(int)Stat.Control] = controlval;
         overmeldStatus.values[(int)Stat.Craftsmanship] = craftsval;
+        overmeldStatus.values[(int)Stat.Control] = controlval;
 
         overmeldStatus.allowed[(int)Stat.CP] = cp;
-        overmeldStatus.allowed[(int)Stat.Control] = crafts;
-        overmeldStatus.allowed[(int)Stat.Craftsmanship] = control;
+        overmeldStatus.allowed[(int)Stat.Craftsmanship] = crafts;
+        overmeldStatus.allowed[(int)Stat.Control] = control;
 
         overmeldStatus.baseSlots = slots;
 
