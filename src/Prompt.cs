@@ -15,7 +15,10 @@ public static class Prompt
     private static Regex RewardsRegex = new Regex("^rewards( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex Overmeld = new Regex("^overmeld (?<slots>[0-9]+) (?<cp>[0-9]+) (?<crafts>[0-9]+) (?<control>[0-9]+) (?<craftsval>[0-9]+) (?<controlval>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisSegment = new Regex("^recipeanalysissegment (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+) (?<role>[a-zA-Z]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisLevel = new Regex("^recipeanalysislevel (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -54,6 +57,7 @@ public static class Prompt
                 Dbg.Inf("    gathercalc (lchance) (hqchance) (maxgp) (attempts) (hqonly) - calculates the best way to gather items given current stats");
                 Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
                 Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
+                Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) (craftsval) (controlval) - minmaxes crafting overmeld values");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
@@ -297,6 +301,16 @@ public static class Prompt
                         new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
                         new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = int.MaxValue, maxlevel = int.MaxValue, craftsmanship = int.MaxValue, control = int.MaxValue },
                     }, Bootstrap.SortMethod.Profit, bool.Parse(raxmatch.Groups["solo"].Value), bool.Parse(raxmatch.Groups["bulk"].Value));
+                }
+                else if (Overmeld.Match(instr) is var omatch && omatch.Success)
+                {
+                    DoOvermeld(
+                        int.Parse(omatch.Groups["slots"].Value),
+                        int.Parse(omatch.Groups["cp"].Value),
+                        int.Parse(omatch.Groups["crafts"].Value),
+                        int.Parse(omatch.Groups["control"].Value),
+                        int.Parse(omatch.Groups["craftsval"].Value),
+                        int.Parse(omatch.Groups["controlval"].Value));
                 }
                 else
                 {
@@ -1104,5 +1118,191 @@ public static class Prompt
         });
 
         DoItemsetComparison(itemsFiltered.Select(item => new ItemsetOption() { item = item, hq = true, count = 1 }));
+    }
+
+    private enum Stat
+    {
+        CP,
+        Craftsmanship,
+        Control,
+    }
+    private static int[][] MateriaSuccessRates = new int[][] {
+        new int[] { 90, 82, 70, 58, 17, 17, 17, 17 },
+        new int[] { 48, 44, 38, 32, 10, 0, 10, 0},
+        new int[] { 28, 26, 22, 20, 7, 0, 7, 0 },
+        new int[] { 16, 16, 14, 12, 5, 0, 5, 0 }
+    };
+    class Materia
+    {
+        public string name;
+        public int amount;
+        public int rank;
+        public Stat stat;
+        public float cost;
+
+        public float CalculateMeldChance(int slot)
+        {
+            float meldChance = 100;
+            if (slot >= overmeldStatus.baseSlots)
+            {
+                meldChance = MateriaSuccessRates[slot - overmeldStatus.baseSlots][rank];
+            }
+
+            return meldChance / 100;
+        }
+    }
+    private static Materia[] MateriaData = new Materia[]
+    {
+        new Materia { stat = Stat.CP, rank = 0, amount = 1, name = "Craftsman's Cunning Materia I" },
+        new Materia { stat = Stat.CP, rank = 1, amount = 2, name = "Craftsman's Cunning Materia II" },
+        new Materia { stat = Stat.CP, rank = 2, amount = 3, name = "Craftsman's Cunning Materia III" },
+        new Materia { stat = Stat.CP, rank = 3, amount = 4, name = "Craftsman's Cunning Materia IV" },
+        new Materia { stat = Stat.CP, rank = 4, amount = 6, name = "Craftsman's Cunning Materia V" },
+        new Materia { stat = Stat.CP, rank = 5, amount = 8, name = "Craftsman's Cunning Materia VI" },
+        new Materia { stat = Stat.CP, rank = 6, amount = 7, name = "Craftsman's Cunning Materia VII" },
+        new Materia { stat = Stat.CP, rank = 7, amount = 9, name = "Craftsman's Cunning Materia VIII" },
+        new Materia { stat = Stat.Craftsmanship, rank = 0, amount = 3, name = "Craftsman's Competence Materia I" },
+        new Materia { stat = Stat.Craftsmanship, rank = 1, amount = 4, name = "Craftsman's Competence Materia II" },
+        new Materia { stat = Stat.Craftsmanship, rank = 2, amount = 5, name = "Craftsman's Competence Materia III" },
+        new Materia { stat = Stat.Craftsmanship, rank = 3, amount = 6, name = "Craftsman's Competence Materia IV" },
+        new Materia { stat = Stat.Craftsmanship, rank = 4, amount = 11, name = "Craftsman's Competence Materia V" },
+        new Materia { stat = Stat.Craftsmanship, rank = 5, amount = 16, name = "Craftsman's Competence Materia VI" },
+        new Materia { stat = Stat.Craftsmanship, rank = 6, amount = 14, name = "Craftsman's Competence Materia VII" },
+        new Materia { stat = Stat.Craftsmanship, rank = 7, amount = 21, name = "Craftsman's Competence Materia VIII" },
+        new Materia { stat = Stat.Control, rank = 0, amount = 1, name = "Craftsman's Command Materia I" },
+        new Materia { stat = Stat.Control, rank = 1, amount = 2, name = "Craftsman's Command Materia II" },
+        new Materia { stat = Stat.Control, rank = 2, amount = 3, name = "Craftsman's Command Materia III" },
+        new Materia { stat = Stat.Control, rank = 3, amount = 4, name = "Craftsman's Command Materia IV" },
+        new Materia { stat = Stat.Control, rank = 4, amount = 7, name = "Craftsman's Command Materia V" },
+        new Materia { stat = Stat.Control, rank = 5, amount = 10, name = "Craftsman's Command Materia VI" },
+        new Materia { stat = Stat.Control, rank = 6, amount = 9, name = "Craftsman's Command Materia VII" },
+        new Materia { stat = Stat.Control, rank = 7, amount = 13, name = "Craftsman's Command Materia VIII" },
+    };
+    static float overmeldBestResult;
+    static string overmeldBestResultReadable;
+    struct OvermeldStatus
+    {
+        public Materia[] chosen;
+        public int[] values;
+        public int[] allowed;
+        public int[] produced;
+        public int baseSlots;
+    }
+    static OvermeldStatus overmeldStatus = new OvermeldStatus();
+    private static void DoOvermeld(int slots, int cp, int crafts, int control, int craftsval, int controlval)
+    {
+        foreach (var materia in MateriaData.ProgressBar())
+        {
+            materia.cost = Commerce.ValueBuy(Db.Item(materia.name), false, Commerce.TransactionType.Immediate, Market.Latency.Immediate);
+        }
+
+        foreach (var materia in MateriaData)
+        {
+            Dbg.Inf($"{materia.name}: {materia.cost:F0}");
+        }
+
+        overmeldBestResult = 0;
+        overmeldBestResultReadable = null;
+        overmeldStatus = new OvermeldStatus();
+        overmeldStatus.chosen = new Materia[5];
+        overmeldStatus.values = new int[Enum.GetNames(typeof(Stat)).Length];
+        overmeldStatus.allowed = new int[Enum.GetNames(typeof(Stat)).Length];
+        overmeldStatus.produced = new int[Enum.GetNames(typeof(Stat)).Length];
+
+        overmeldStatus.values[(int)Stat.Control] = controlval;
+        overmeldStatus.values[(int)Stat.Craftsmanship] = craftsval;
+
+        overmeldStatus.allowed[(int)Stat.CP] = cp;
+        overmeldStatus.allowed[(int)Stat.Control] = crafts;
+        overmeldStatus.allowed[(int)Stat.Craftsmanship] = control;
+
+        overmeldStatus.baseSlots = slots;
+
+        DoOvermeldOptimize(0, 0);
+
+        Dbg.Inf("");
+        Dbg.Inf("Complete!");
+        Dbg.Inf(overmeldBestResultReadable);
+    }
+
+    private static void DoOvermeldOptimize(int index, float cost)
+    {
+        if (index == overmeldStatus.chosen.Length)
+        {
+            // we am done; calculate value
+            if (overmeldStatus.produced[(int)Stat.CP] < overmeldStatus.allowed[(int)Stat.CP])
+            {
+                // nope.
+                return;
+            }
+
+            float netValue = -cost;
+            for (int i = 0; i < overmeldStatus.produced.Length; ++i)
+            {
+                netValue += overmeldStatus.values[i] * Math.Min(overmeldStatus.allowed[i], overmeldStatus.produced[i]);
+            }
+
+            if (netValue > overmeldBestResult)
+            {
+                // yay we're better
+                overmeldBestResult = netValue;
+
+                float totalCost = 0;
+                overmeldBestResultReadable = "";
+                overmeldBestResultReadable += "\n";
+                overmeldBestResultReadable += string.Join("\n", overmeldStatus.chosen.Select((materia, slot) => {
+                    float meldChance = materia.CalculateMeldChance(slot);
+                    float elementCost = materia.cost / meldChance;
+                    totalCost += elementCost;
+
+                    return $"  {materia.name} {materia.cost}g x{1 / meldChance:F0} ({elementCost:F0}g total, {elementCost / materia.amount:F0}/{materia.stat})";
+                }));
+                overmeldBestResultReadable += "\n\n";
+
+                float totalValue = 0;
+                for (int i = 0; i < Enum.GetNames(typeof(Stat)).Length; ++i)
+                {
+                    int produced = overmeldStatus.produced[i];
+                    int allowed = overmeldStatus.allowed[i];
+                    overmeldBestResultReadable += $"  {(Stat)i}: +{Math.Min(produced, allowed)} / {allowed}";
+
+                    if (produced > allowed)
+                    {
+                        overmeldBestResultReadable += $" (wasted {produced - allowed})";
+                    }
+
+                    float statValue = produced * overmeldStatus.values[i];
+                    totalValue += statValue;
+                    overmeldBestResultReadable += $" (value {statValue}))";
+
+                    overmeldBestResultReadable += "\n";
+                }
+
+                overmeldBestResultReadable += $"\nTotal cost: {totalCost:F0}, total value {totalValue:F0}, net value {netValue:F0}";
+            }
+
+            return;
+        }
+
+        foreach (var materia in MateriaData)
+        {
+            // add each materia in order
+
+            float meldChance = materia.CalculateMeldChance(index);
+
+            if (meldChance == 0)
+            {
+                // can't meld it
+                continue;
+            }
+
+            overmeldStatus.chosen[index] = materia;
+            overmeldStatus.produced[(int)materia.stat] += materia.amount;
+
+            DoOvermeldOptimize(index + 1, cost + materia.cost / meldChance);
+
+            overmeldStatus.chosen[index] = null;
+            overmeldStatus.produced[(int)materia.stat] -= materia.amount;
+        }
     }
 }
