@@ -223,6 +223,11 @@ public static class Bootstrap
         
         readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
+        if (totalCost * 1f > adjustedProfit)
+        {
+            readable += "  == RISKY ==";
+        }
+
         if (latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
             readable = readable.Replace("\n", "\n    ");
