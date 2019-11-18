@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 public static class Prompt
 {
     private static Regex PointRegex = new Regex("^gpoint( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex GatherRegex = new Regex("^gatherbest (?<gather>[0-9]+) (?<mine>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex GatherRegex = new Regex("^gatherbest (?<gathermin>[0-9]+) (?<gathermax>[0-9]+) (?<minemin>[0-9]+) (?<minemax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex ValueRegex = new Regex("^vendornet (?<amount>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex AcquireRegex = new Regex("^acquirenet( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex AnalyzeRegex = new Regex("^analyze( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -48,7 +48,7 @@ public static class Prompt
                 Dbg.Inf("Options:");
                 Dbg.Inf("  Core commands:");
                 Dbg.Inf("    gpoint wind coin - finds the most profitable item to acquire at a gathering point, given some items names");
-                Dbg.Inf("    gatherbest (bot) (mine) - finds the best items to gather, given botanist and miner levels");
+                Dbg.Inf("    gatherbest (botmin) (botmax) (minemin) (minemax) - finds the best items to gather, given botanist and miner ranges");
                 Dbg.Inf("    vendornet 2000 tomestone poetic - finds the best way to turn an item into money, given a quantity of that item and the item's name");
                 Dbg.Inf("    acquirenet rakshasa token - finds the best way to acquire an item, given the item name");
                 Dbg.Inf("    analyze craftsman vi - dumps various crafting and market info on an item");
@@ -83,10 +83,11 @@ public static class Prompt
                 }
                 else if (GatherRegex.Match(instr) is var gmatch && gmatch.Success)
                 {
-                    int gather = int.Parse(gmatch.Groups["gather"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                    int mine = int.Parse(gmatch.Groups["mine"].Captures.OfType<System.Text.RegularExpressions.Capture>().First().Value);
-                    
-                    GatherbestCalculator(gather, mine);
+                    GatherbestCalculator(
+                        int.Parse(gmatch.Groups["gathermin"].Value),
+                        int.Parse(gmatch.Groups["gathermax"].Value),
+                        int.Parse(gmatch.Groups["minemin"].Value),
+                        int.Parse(gmatch.Groups["minemax"].Value));
                 }
                 else if (ValueRegex.Match(instr) is var vmatch && vmatch.Success)
                 {
@@ -524,7 +525,7 @@ public static class Prompt
         }
     }
 
-    public static void GatherbestCalculator(int gather, int mine)
+    public static void GatherbestCalculator(int gathermin, int gathermax, int minemin, int minemax)
     {
         var transientSheet = Db.Realm.GameData.GetSheet("GatheringPointTransient");
 
@@ -545,8 +546,8 @@ public static class Prompt
             var pbase = point.Base;
             string pointtype = pbase.Type.Name;
             bool valid = false;
-            if ((pointtype == "Mining" || pointtype == "Quarrying") && pbase.GatheringLevel <= gather) valid = true;
-            if ((pointtype == "Harvesting" || pointtype == "Logging") && pbase.GatheringLevel <= mine) valid = true;
+            if ((pointtype == "Mining" || pointtype == "Quarrying") && pbase.GatheringLevel >= minemin && pbase.GatheringLevel <= minemax) valid = true;
+            if ((pointtype == "Harvesting" || pointtype == "Logging") && pbase.GatheringLevel >= gathermin && pbase.GatheringLevel <= gathermax) valid = true;
 
             if (!valid)
             {
