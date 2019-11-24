@@ -23,6 +23,7 @@ public static class Bootstrap
     {
         Order,
         Profit,
+        Gc,
     }
 
     public struct CraftingInfo
@@ -155,7 +156,7 @@ public static class Bootstrap
         }
     }
 
-    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk)
+    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk, SortMethod sortMethod)
     {
         const float expectedProfitMargin = 1.5f;
 
@@ -169,6 +170,12 @@ public static class Bootstrap
         float totalCost = 0;
         float maxSellPerDay;
         {
+            if (sortMethod == SortMethod.Gc)
+            {
+                // We're presumably going to be making a bunch, so make sure it's worth our time
+                maxSellPerDay = 10;
+            }
+            else
             {
                 // Can't bulk-produce HQ, unfortunately
                 bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
@@ -199,7 +206,7 @@ public static class Bootstrap
                     // we actually have no items here
                     break;
                 }
-                else if (toSell == 0 || itemCost * expectedProfitMargin < expectedRevenue)
+                else if (toSell == 0 || sortMethod == SortMethod.Gc || itemCost * expectedProfitMargin < expectedRevenue)
                 {
                     totalCost += itemCost;
                     toSell++;
@@ -218,22 +225,42 @@ public static class Bootstrap
             readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
         }
 
-        float profit = expectedRevenue * toSell - totalCost;
-        float adjustedProfit = toSell == 0 ? 0 : (profit / toSell * maxSellPerDay);
-        
-        readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
-
-        if (totalCost * 1f > adjustedProfit)
+        float value;
+        if (sortMethod == SortMethod.Order || sortMethod == SortMethod.Profit)
         {
-            readable += "  == RISKY ==";
+            float profit = expectedRevenue * toSell - totalCost;
+            float adjustedProfit = toSell == 0 ? 0 : ( profit / toSell * maxSellPerDay );
+
+            readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
+
+            if (totalCost * 1f > adjustedProfit)
+            {
+                readable += "  == RISKY ==";
+            }
+
+            value = adjustedProfit;
         }
+        else if (sortMethod == SortMethod.Gc)
+        {
+            int seals = (result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals;
+            float costPerItem = totalCost / toSell;
+            value = seals / costPerItem;
+
+            readable += "\n" + $"  Cost per item: {costPerItem:F0}, seals per item {seals:F0}, gil/venture {1 / value * 200:F0}";
+        }
+        else
+        {
+            Dbg.Err("Invalid sort method?");
+            value = 0;
+        }
+        
 
         if (latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
             readable = readable.Replace("\n", "\n    ");
         }
 
-        return new Util.Twopass.Result() { value = adjustedProfit, display = readable };
+        return new Util.Twopass.Result() { value = value, display = readable };
     }
 
     public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
@@ -259,6 +286,20 @@ public static class Bootstrap
             if (recipe.RequiredItem.Key != 0)
             {
                 continue;
+            }
+
+            // if we're trying to make things for GC seals, strip out anything that can't be turned in for seals
+            if (sortMethod == SortMethod.Gc)
+            {
+                if (!(result is SaintCoinach.Xiv.Items.Equipment))
+                {
+                    continue;
+                }
+
+                if ((result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals == 0)
+                {
+                    continue;
+                }
             }
 
             string className = recipe.ClassJob.Name;
@@ -295,12 +336,12 @@ public static class Bootstrap
                 }
             }
 
-            if (canHq && result.CanBeHq)
+            if (canHq && result.CanBeHq && sortMethod != SortMethod.Gc)
             {
-                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk), unique = result });
+                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod), unique = result });
             }
 
-            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk), unique = result });
+            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod), unique = result });
         }
 
         if (sortMethod == SortMethod.Order)
@@ -311,7 +352,7 @@ public static class Bootstrap
                 Dbg.Inf(output);
             }
         }
-        else if (sortMethod == SortMethod.Profit)
+        else if (sortMethod == SortMethod.Profit || sortMethod == SortMethod.Gc)
         {
             Util.Twopass.Process(evaluators, 20);
         }
