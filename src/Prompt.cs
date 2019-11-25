@@ -58,6 +58,7 @@ public static class Prompt
                 Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
                 Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
                 Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) [(craftsval) (controlval)] - minmaxes crafting overmeld values");
+                Dbg.Inf("    craftingfood - does stuff to evaluate crafting food? I dunno man, this one isn't really planned out");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
@@ -326,6 +327,10 @@ public static class Prompt
                         int.Parse(omatch.Groups["control"].Value),
                         omatch.Groups["craftsval"].Length > 0 ? int.Parse(omatch.Groups["craftsval"].Value) : 50000,
                         omatch.Groups["controlval"].Length > 0 ? int.Parse(omatch.Groups["controlval"].Value) : 200000);
+                }
+                else if (instr == "craftingfood")
+                {
+                    AnalyzeCraftingFood();
                 }
                 else
                 {
@@ -1318,6 +1323,46 @@ public static class Prompt
 
             overmeldStatus.chosen[index] = null;
             overmeldStatus.produced[(int)materia.stat] -= materia.amount;
+        }
+    }
+
+    public static void AnalyzeCraftingFood()
+    {
+        var items = Db.GetSheet<SaintCoinach.Xiv.Item>().Where(item =>
+        {
+            var enhancement = item.ItemAction as SaintCoinach.Xiv.ItemActions.Enhancement;
+            if (enhancement == null)
+            {
+                return false;
+            }
+
+            var food = enhancement.ItemFood;
+            if (food == null)
+            {
+                return false;
+            }
+
+            if (!food.Parameters.Any(param => param.BaseParam.Name == "CP"))
+            {
+                return false;
+            }
+
+            return true;
+        });
+
+        Dbg.Inf("");
+
+        const int count = 10;
+        foreach (var item in items.ProgressBar().OrderBy(item => item.ItemLevel.Key))
+        {
+            float price = Market.Prices(item, Market.Latency.Immediate).PriceForQuantity(count);
+
+            var enhancement = item.ItemAction as SaintCoinach.Xiv.ItemActions.Enhancement;
+            var food = enhancement.ItemFood;
+
+            string statstring = string.Join(", ", food.Parameters.Select(param => $"{param.BaseParam.Name} {param.Values.First().ToString()}"));
+
+            Dbg.Inf($"{price:F0}: {item.Name}, ({statstring})");
         }
     }
 }
