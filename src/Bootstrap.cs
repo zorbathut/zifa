@@ -257,12 +257,12 @@ public static class Bootstrap
         {
             float profit = expectedRevenue * toSell - totalCost;
 
-            // I no longer remember why this adjustment existed, so I've removed it
-            // but I know there was a really good reason
-            // so I'm leaving it in as a comment for now in case I remember why
-            //float adjustedProfit = toSell == 0 ? 0 : ( profit / toSell * maxSellPerDay );
-
             float adjustedProfit = profit;
+            if (maxSellPerDay < toSell)
+            {
+                // scale down in case we have less sales than we're making
+                adjustedProfit = adjustedProfit / toSell * maxSellPerDay;
+            }
 
             readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
