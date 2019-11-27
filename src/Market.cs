@@ -209,7 +209,15 @@ public static class Market
         }
         else if (latency == Latency.Immediate)
         {
-            return TimeSpan.FromHours(1);
+            var recacheDuration = DateTimeOffset.Now - Cache.GetImmediateRecachePoint();
+            if (recacheDuration.TotalHours < 1)
+            {
+                return recacheDuration;
+            }
+            else
+            {
+                return TimeSpan.FromHours(1);
+            }
         }
         else if (latency == Latency.CacheOnly)
         {

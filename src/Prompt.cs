@@ -75,7 +75,10 @@ public static class Prompt
                 Dbg.Inf("    sourceremove {count} {itemdescr} - removes an item from the sourcing list");
                 Dbg.Inf("    sourcecraft {count} {itemdescr} - adds components to craft an item to the sourcing list");
                 Dbg.Inf("    sourcecraftrange {crafter} {levelmin} {levelmax} - adds items based on a level range for crafters");
-                
+                Dbg.Inf("");
+                Dbg.Inf("  Misc commands:");
+                Dbg.Inf("    recachepoint - resets immediate recache timing");
+
                 Dbg.Inf("");
 
                 string instr = Console.ReadLine();
@@ -331,6 +334,10 @@ public static class Prompt
                 else if (instr == "craftingfood")
                 {
                     AnalyzeCraftingFood();
+                }
+                else if (instr == "recachepoint")
+                {
+                    Cache.SetImmediateRecachePoint();
                 }
                 else
                 {

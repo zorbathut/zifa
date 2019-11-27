@@ -5,6 +5,7 @@ using System.Data.SQLite;
 public static class Cache
 {
     private static SQLiteConnection DbConnection;
+    private static DateTimeOffset ImmediateRecachePoint = DateTimeOffset.MinValue;
 
     public static void Init()
     {
@@ -61,5 +62,15 @@ public static class Cache
         cmd.Parameters.AddWithValue("@time", DateTimeOffset.Now.ToUnixTimeSeconds());
         cmd.Parameters.AddWithValue("@value", value);
         cmd.ExecuteNonQuery();
+    }
+
+    public static DateTimeOffset GetImmediateRecachePoint()
+    {
+        return ImmediateRecachePoint;
+    }
+
+    public static void SetImmediateRecachePoint()
+    {
+        ImmediateRecachePoint = DateTimeOffset.Now;
     }
 }
