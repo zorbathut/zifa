@@ -415,7 +415,7 @@ public static class Prompt
                 {
                     yield return new PurchasableOption() { name = label, evaluator = immediate => {
                         float valueBase = Commerce.ValueSell(reward.Item, reward.IsHq, immediate ? Market.Latency.Immediate : Market.Latency.Standard) * reward.Count;
-                        float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
+                        float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item, reward.IsHq, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
                         return new Util.Twopass.Result() { value = valueAdjusted / cost, display = label };
                     }};
                 }
@@ -538,7 +538,7 @@ public static class Prompt
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        foreach (var item in items.Select(item => Tuple.Create(item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard), item, 30, Market.Latency.Standard))).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.Select(item => Tuple.Create(item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard), item, false, 30, Market.Latency.Standard))).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -598,7 +598,7 @@ public static class Prompt
         {
             bool lim = !unlimited.Contains(item);
             var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
-            float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, latency), item, lim ? 10 : 99, latency);
+            float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, latency), item, false, lim ? 10 : 99, latency);
             string badge = lim ? "LIM" : "   ";
             return new Util.Twopass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
         } };
@@ -623,12 +623,15 @@ public static class Prompt
             Dbg.Inf($"    Longterm: {Commerce.ValueMarket(item, false, Commerce.TransactionType.Longterm, Market.Latency.Immediate)}");
             Dbg.Inf($"    Fastsell: {Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
             Dbg.Inf($"    Fastsell HQ: {Commerce.ValueMarket(item, true, Commerce.TransactionType.Fastsell, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Sales per day: {Commerce.MarketSalesPerDay(item, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Sales per day NQ: {Commerce.MarketSalesPerDay(item, false, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Sales per day HQ: {Commerce.MarketSalesPerDay(item, true, Market.Latency.Immediate)}");
             Dbg.Inf($"    Expected stack sale: {Commerce.MarketExpectedStackSale(item, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (1): {Commerce.MarketProfitAdjuster(1, item, 1, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (10): {Commerce.MarketProfitAdjuster(1, item, 10, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (99): {Commerce.MarketProfitAdjuster(1, item, 99, Market.Latency.Immediate)}");
-            Dbg.Inf($"    Profit adjustment (stack): {Commerce.MarketProfitAdjuster(1, item, item.StackSize, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (1, NQ): {Commerce.MarketProfitAdjuster(1, item, false, 1, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (10, NQ): {Commerce.MarketProfitAdjuster(1, item, false, 10, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (99, NQ): {Commerce.MarketProfitAdjuster(1, item, false, 99, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (1, HQ): {Commerce.MarketProfitAdjuster(1, item, true, 1, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (10, HQ): {Commerce.MarketProfitAdjuster(1, item, true, 10, Market.Latency.Immediate)}");
+            Dbg.Inf($"    Profit adjustment (99, HQ): {Commerce.MarketProfitAdjuster(1, item, true, 99, Market.Latency.Immediate)}");
             Dbg.Inf("");
 
             bool recipeHeadered = false;
@@ -736,7 +739,7 @@ public static class Prompt
     }
     private static void DoItemsetComparison(IEnumerable<ItemsetOption> items)
     {
-        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item, reward.hq, Market.Latency.Standard), reward.item, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item, reward.hq, Market.Latency.Standard), reward.item, reward.hq, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
         {
             Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
         }
@@ -763,7 +766,7 @@ public static class Prompt
             }
 
             int stack = Math.Min(item.StackSize, 99);
-            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard) - item.Ask, item, stack, Market.Latency.Standard);
+            float profit = Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, Market.Latency.Standard) - item.Ask, item, false, stack, Market.Latency.Standard);
 
             results.Add(new MarketInfo() { profit = profit * stack, text = $"{Math.Round(profit * stack)}: {item.Name}"});
         }
@@ -876,12 +879,12 @@ public static class Prompt
             if (item.CanBeHq)
             {
                 // 20% HQ; vague estimate
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, true, Commerce.TransactionType.Fastsell, latency), item, throughput * 0.2f, latency) * quantity * 0.2f;
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, throughput * 0.8f, latency) * quantity * 0.8f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, true, Commerce.TransactionType.Fastsell, latency), item, true, throughput * 0.2f, latency) * quantity * 0.2f;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, false, throughput * 0.8f, latency) * quantity * 0.8f;
             }
             else
             {
-                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, throughput, latency) * quantity;
+                profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, false, throughput, latency) * quantity;
             }
 
             return new Util.Twopass.Result() { value = profit, display = $"{profit}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };

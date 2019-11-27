@@ -95,7 +95,7 @@ public static class Bootstrap
             {
                 inspected.Add(item);
 
-                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard) / scripEntry.GCSealsCost, item, 40000 / scripEntry.GCSealsCost, Market.Latency.Standard);
+                float gps = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, Market.Latency.Standard) / scripEntry.GCSealsCost, item, false, 40000 / scripEntry.GCSealsCost, Market.Latency.Standard);
 
                 results.Add(new Result() { gps = gps, name = item.Name });
             }
@@ -168,29 +168,30 @@ public static class Bootstrap
 
         int toSell = 0;
         float totalCost = 0;
+        float effortBaseCost = (sortMethod == SortMethod.Gc) ? 50000 : 0;
         float maxSellPerDay;
         {
             if (sortMethod == SortMethod.Gc)
             {
-                // We're presumably going to be making a bunch, so make sure it's worth our time
-                maxSellPerDay = 10;
+                // "sell"
+                maxSellPerDay = 20;
             }
             else
             {
                 // Can't bulk-produce HQ, unfortunately
                 bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
 
-                // This is the amount that we're allowed to sell per day
-                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result, latency), Commerce.MarketExpectedStackSale(result, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
+                // This is the number of recipe productions that we're allowed to sell per day
+                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result, hq, latency), Commerce.MarketExpectedStackSale(result, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
                 if (!allowBulkProduction)
                 {
                     maxSellPerDay = Math.Min(maxSellPerDay, 1);
                 }
+            }
 
-                if (!includeSolo && maxSellPerDay <= 1)
-                {
-                    return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
-                }
+            if (!includeSolo && maxSellPerDay <= 1)
+            {
+                return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
             }
 
             for (int i = 0; i < (int)Math.Ceiling(maxSellPerDay); ++i)
@@ -203,16 +204,42 @@ public static class Bootstrap
 
                 if (float.IsNaN(itemCost))
                 {
-                    // we actually have no items here
+                    // we actually have no more items here
                     break;
                 }
-                else if (toSell == 0 || sortMethod == SortMethod.Gc || itemCost * expectedProfitMargin < expectedRevenue)
+
+                bool accept = false;
+
+                if (toSell == 0)
+                {
+                    // we need at least one!
+                    accept = true;
+                }
+                else if (sortMethod != SortMethod.Gc && itemCost * expectedProfitMargin < expectedRevenue)
+                {
+                    accept = true;
+                }
+                else if (sortMethod == SortMethod.Gc)
+                {
+                    // mathematically, these should both be multiplied by (result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals
+                    // but obviously that doesn't change the outcome of the equation
+                    float costpergcpre = (totalCost + effortBaseCost) / toSell;
+                    float costpergcpost = (totalCost + effortBaseCost + itemCost) / (toSell + 1);
+
+                    if (costpergcpre >= costpergcpost)
+                    {
+                        accept = true;
+                    }
+                }
+
+                if (accept)
                 {
                     totalCost += itemCost;
                     toSell++;
                 }
                 else
                 {
+                    // not authorized to continue, so we end
                     break;
                 }
             }
@@ -229,7 +256,13 @@ public static class Bootstrap
         if (sortMethod == SortMethod.Order || sortMethod == SortMethod.Profit)
         {
             float profit = expectedRevenue * toSell - totalCost;
-            float adjustedProfit = toSell == 0 ? 0 : ( profit / toSell * maxSellPerDay );
+
+            // I no longer remember why this adjustment existed, so I've removed it
+            // but I know there was a really good reason
+            // so I'm leaving it in as a comment for now in case I remember why
+            //float adjustedProfit = toSell == 0 ? 0 : ( profit / toSell * maxSellPerDay );
+
+            float adjustedProfit = profit;
 
             readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
 
@@ -243,10 +276,15 @@ public static class Bootstrap
         else if (sortMethod == SortMethod.Gc)
         {
             int seals = (result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals;
-            float costPerItem = totalCost / toSell;
-            value = seals / costPerItem;
+            float baseCostPerItem = totalCost / toSell;
+            float baseValue = seals / baseCostPerItem;
 
-            readable += "\n" + $"  Cost per item: {costPerItem:F0}, seals per item {seals:F0}, gil/venture {1 / value * 200:F0}";
+            float adjCostPerItem = (effortBaseCost + totalCost) / toSell;
+            float adjValue = seals / adjCostPerItem;
+
+            readable += "\n" + $"  Cost per item: {baseCostPerItem:F0}, seals per item {seals:F0}, gil/venture {1 / baseValue * 200:F0} (with effort {1 / adjValue * 200:F0})";
+
+            value = adjValue;
         }
         else
         {

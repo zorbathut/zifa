@@ -88,7 +88,7 @@ public static class Commerce
         return hq ? hqp : lqp;
     }
 
-    public static float MarketSalesPerDay(SaintCoinach.Xiv.Item item, Market.Latency latency)
+    public static float MarketSalesPerDay(SaintCoinach.Xiv.Item item, bool hq, Market.Latency latency)
     {
         // just get this out of the way first; it's a much much cheaper query
         if (item.IsUntradable)
@@ -108,7 +108,16 @@ public static class Commerce
         long lastDate = results.history.Last().buyRealDate / 1000;
         long span = retrievalTime.ToUnixTimeSeconds() - lastDate;
 
-        int totalQuantity = results.history.Sum(entry => entry.stack);
+        // for NQ, we sum them; for HQ we assume we care only about HQ
+        int totalQuantity;
+        if (hq)
+        {
+            totalQuantity = results.history.Where(entry => entry.hq).Sum(entry => entry.stack);
+        }
+        else
+        {
+            totalQuantity = results.history.Sum(entry => entry.stack);
+        }
 
         return (float)totalQuantity / span * 60 * 60 * 24;
     }
@@ -126,7 +135,7 @@ public static class Commerce
         return Math.Min(Math.Min(results.history.Select(entry => entry.stack).Percentile(0.9f) * 2, item.StackSize), 99);
     }
 
-    public static float MarketProfitAdjuster(float profit, SaintCoinach.Xiv.Item item, float acquired, Market.Latency latency)
+    public static float MarketProfitAdjuster(float profit, SaintCoinach.Xiv.Item item, bool hq, float acquired, Market.Latency latency)
     {
         if (profit < 0)
         {
@@ -140,7 +149,7 @@ public static class Commerce
 
         // divide by three because historically I cannot get every sale
         // maybe this should be based on the number of sellers? think more about this
-        float expectedMySalesPerDay = MarketSalesPerDay(item, latency) / 3;
+        float expectedMySalesPerDay = MarketSalesPerDay(item, hq, latency) / 3;
         float maximumStackSize = MarketExpectedStackSale(item, latency);
 
         float salesPerSlotDay = Math.Min(expectedMySalesPerDay, maximumStackSize);
