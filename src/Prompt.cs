@@ -243,10 +243,11 @@ public static class Prompt
                     for (int i = 0; i < 2; ++i)
                     {
                         Dbg.Inf("\n\n");
-                        DoRetainerGatherAnalysis("dow", 420);
-                        DoRetainerGatherAnalysis("btn", 10000);
-                        DoRetainerGatherAnalysis("min", 709);
-                        DoRetainerGatherAnalysis("fsh", 91);
+                        foreach (var retainer in ZifaConfigDefs.Global.retainers)
+                        {
+                            Dbg.Inf(retainer.name);
+                            DoRetainerGatherAnalysis(retainer.profession, retainer.skill);
+                        }
                     }
                 }
                 else if (instr == "retainergathermax")
@@ -263,29 +264,17 @@ public static class Prompt
                 }
                 else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
                 {
-                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
-                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 41, maxlevel = 41, craftsmanship = 194, control = 205 },
-                        new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 38, maxlevel = 38, craftsmanship = 185, control = 196 },
-                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 37, maxlevel = 37, craftsmanship = 180, control = 178 },
-                        new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 37, maxlevel = 37, craftsmanship = 180, control = 178 },
-                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 30, maxlevel = 30, craftsmanship = 154, control = 167 },
-                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = 2057, control = 2015 },
-                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 36, maxlevel = 36, craftsmanship = 155, control = 164 },
-                        new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 41, maxlevel = 41, craftsmanship = 188, control = 201 },
-                    }, Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
+                    Bootstrap.DoRecipeAnalysis(
+                        ZifaConfigDefs.Global.professions.Select(
+                            p => new Bootstrap.CraftingInfo { name = p.name, minlevel = 1, maxhqlevel = p.level, maxlevel = p.level, craftsmanship = p.craftsmanship, control = p.control }).ToArray(),
+                        Bootstrap.SortMethod.Profit, bool.Parse(racmatch.Groups["solo"].Value), bool.Parse(racmatch.Groups["bulk"].Value));
                 }
                 else if (instr == "recipeanalysiscachegc")
                 {
-                    Bootstrap.DoRecipeAnalysis(new Bootstrap.CraftingInfo[] {
-                        new Bootstrap.CraftingInfo() { name = "carpenter", minlevel = 1, maxhqlevel = 41, maxlevel = 41, craftsmanship = 194, control = 205 },
-                        new Bootstrap.CraftingInfo() { name = "blacksmith", minlevel = 1, maxhqlevel = 38, maxlevel = 38, craftsmanship = 185, control = 196 },
-                        new Bootstrap.CraftingInfo() { name = "armorer", minlevel = 1, maxhqlevel = 37, maxlevel = 37, craftsmanship = 180, control = 178 },
-                        new Bootstrap.CraftingInfo() { name = "goldsmith", minlevel = 1, maxhqlevel = 37, maxlevel = 37, craftsmanship = 180, control = 178 },
-                        new Bootstrap.CraftingInfo() { name = "leatherworker", minlevel = 1, maxhqlevel = 30, maxlevel = 30, craftsmanship = 154, control = 167 },
-                        new Bootstrap.CraftingInfo() { name = "weaver", minlevel = 1, maxhqlevel = 80, maxlevel = 80, craftsmanship = 2057, control = 2015 },
-                        new Bootstrap.CraftingInfo() { name = "alchemist", minlevel = 1, maxhqlevel = 36, maxlevel = 36, craftsmanship = 155, control = 164 },
-                        new Bootstrap.CraftingInfo() { name = "culinarian", minlevel = 1, maxhqlevel = 41, maxlevel = 41, craftsmanship = 188, control = 201 },
-                    }, Bootstrap.SortMethod.Gc, true, false);
+                    Bootstrap.DoRecipeAnalysis(
+                        ZifaConfigDefs.Global.professions.Select(
+                            p => new Bootstrap.CraftingInfo { name = p.name, minlevel = 1, maxhqlevel = p.level, maxlevel = p.level, craftsmanship = p.craftsmanship, control = p.control }).ToArray(),
+                        Bootstrap.SortMethod.Gc, true, false);
                 }
                 else if (RecipeAnalysisSegment.Match(instr) is var rasmatch && rasmatch.Success)
                 {

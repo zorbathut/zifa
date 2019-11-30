@@ -258,7 +258,7 @@ public static class Market
         foreach (var price in prices.Entries)
         {
             string poster = price.sellRetainerName;
-            if (ZifaConfigDefs.Global.retainers.Contains(poster))
+            if (ZifaConfigDefs.Global.retainers.Any(r => r.name == poster))
             {
                 return true;
             }
