@@ -245,8 +245,9 @@ public static class Prompt
                         Dbg.Inf("\n\n");
                         foreach (var retainer in ZifaConfigDefs.Global.retainers)
                         {
-                            Dbg.Inf("^^   " + retainer.name);
+                            Dbg.Inf("vv   " + retainer.name);
                             DoRetainerGatherAnalysis(retainer.profession, retainer.skill);
+                            Dbg.Inf("^^   " + retainer.name);
                         }
                     }
                 }
