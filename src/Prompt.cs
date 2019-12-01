@@ -641,7 +641,7 @@ public static class Prompt
                         Dbg.Inf("  Crafting:");
                         recipeHeadered = true;
                     }
-                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true, Bootstrap.SortMethod.Profit).display.Replace("\n", "\n  "));
+                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true, Bootstrap.SortMethod.Profit, true).display.Replace("\n", "\n  "));
                     Dbg.Inf("");
                 }
             }

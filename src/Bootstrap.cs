@@ -156,7 +156,7 @@ public static class Bootstrap
         }
     }
 
-    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk, SortMethod sortMethod)
+    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk, SortMethod sortMethod, bool allowReuse)
     {
         const float expectedProfitMargin = 1.5f;
 
@@ -192,6 +192,11 @@ public static class Bootstrap
             if (!includeSolo && maxSellPerDay <= 1)
             {
                 return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
+            }
+
+            if (maxSellPerDay > 1)
+            {
+                allowReuse = false;
             }
 
             for (int i = 0; i < (int)Math.Ceiling(maxSellPerDay); ++i)
@@ -250,6 +255,14 @@ public static class Bootstrap
         foreach (var ingredient in ingredients)
         {
             readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
+
+            // Strip out 30% of an instance of the first ingredient; base it on the cheapest one because we still have to buy the most expensive
+            if (allowReuse)
+            {
+                totalCost -= 0.3f * ingredients[0].prices.PriceForQuantity(1);
+                readable += " (REUSE)";
+                allowReuse = false;
+            }
         }
 
         float value;
@@ -344,8 +357,8 @@ public static class Bootstrap
             int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
 
             bool canHq = false;
-
             bool canQuickSynth = false;
+            bool canReuse = false;
             {
                 // validate availability and see if we're allowed to try HQ'ing it
                 bool validated = false;
@@ -365,6 +378,10 @@ public static class Bootstrap
                         {
                             canQuickSynth = true;
                         }
+                        if (crafttype.maxlevel >= 74)
+                        {
+                            canReuse = true;
+                        }
                     }
                 }
 
@@ -376,10 +393,10 @@ public static class Bootstrap
 
             if (canHq && result.CanBeHq && sortMethod != SortMethod.Gc)
             {
-                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod), unique = result });
+                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod, canReuse), unique = result });
             }
 
-            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod), unique = result });
+            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod, canReuse), unique = result });
         }
 
         if (sortMethod == SortMethod.Order)
