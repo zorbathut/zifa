@@ -725,7 +725,7 @@ public static class Prompt
         }
 
         Dbg.Inf($"{prospective.Count} matches");
-        DoItemsetComparison(rewards.Select(reward => new ItemsetOption() { item = reward.Item, hq = false, count = reward.Counts[0] }));
+        DoItemsetComparison(rewards.Select(reward => new ItemsetOption() { item = reward.Item, hq = reward.IsHq, count = reward.Counts[0] }));
     }
 
     private struct ItemsetOption
@@ -736,9 +736,9 @@ public static class Prompt
     }
     private static void DoItemsetComparison(IEnumerable<ItemsetOption> items)
     {
-        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward.item, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item, reward.hq, Market.Latency.Standard), reward.item, reward.hq, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
+        foreach (var item in items.ProgressBar().Select(reward => Tuple.Create(reward, Commerce.MarketProfitAdjuster(Commerce.ValueSell(reward.item, reward.hq, Market.Latency.Standard), reward.item, reward.hq, reward.count, Market.Latency.Standard) * reward.count)).OrderByDescending(tup => tup.Item2))
         {
-            Dbg.Inf($"  {item.Item1.Name}: {item.Item2:F0}");
+            Dbg.Inf($"  {item.Item1.item.Name}{(item.Item1.hq ? " HQ" : "")}{(item.Item1.count > 1 ? $" x{item.Item1.count}" : "")}: {item.Item2:F0}");
         }
     }
 
