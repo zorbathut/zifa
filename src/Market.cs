@@ -26,6 +26,9 @@ public static class Market
 
             public float totalMin;
             public float totalMax;
+
+            public float incrementalPrice;
+            public float fullStackPrice;
         }
 
         public List<Cherenkov.Session.MarketPriceResponse.Entry> Entries
@@ -73,21 +76,29 @@ public static class Market
             return PriceForQuantity(end) - PriceForQuantity(start);
         }
 
+        public float PriceForRangeFullStack(int start, int end)
+        {
+            return PriceForQuantityFullStack(end) - PriceForQuantityFullStack(start);
+        }
+
         public float PriceForRange(int start, int end, out Bracket bracket)
         {
+            bracket = new Bracket();
+
             if (start == end)
             {
-                bracket = new Bracket();
+                // perf hack
                 return 0;
             }
 
-            float totalPrice = PriceForRange(start, end);
+            bracket.incrementalPrice = PriceForRange(start, end);
+            bracket.fullStackPrice = PriceForRangeFullStack(start, end);
+
             float vendorPrice = item.VendorPrice();
             int marketQuantity = MarketQuantity();
             if (marketQuantity >= end - start)
             {
                 // Must be entirely market.
-                bracket = new Bracket();
                 bracket.containsMarket = true;
                 bracket.totalMin = bracket.marketMin = Entries[0].sellPrice;
                 bracket.totalMax = bracket.marketMax = PriceForRange(end - 1, end);
@@ -96,7 +107,6 @@ public static class Market
             else if (marketQuantity == 0)
             {
                 // Must be entirely vendor.
-                bracket = new Bracket();
                 bracket.containsVendor = true;
                 bracket.totalMin = bracket.totalMax = bracket.vendorPrice = item.VendorPrice();
                 bracket.vendorCount = end - start;
@@ -104,7 +114,6 @@ public static class Market
             else
             {
                 // weird spooky hybrid
-                bracket = new Bracket();
                 bracket.containsMarket = true;
                 bracket.containsVendor = true;
                 bracket.totalMin = bracket.marketMin = Entries[0].sellPrice;
@@ -114,7 +123,14 @@ public static class Market
                 bracket.vendorCount = end - start - bracket.marketCount;
             }
 
-            return totalPrice;
+            return bracket.incrementalPrice;
+        }
+
+        public Bracket BracketForRange(int start, int end)
+        {
+            var result = new Bracket();
+            PriceForRange(start, end, out result);
+            return result;
         }
 
         public float PriceForQuantity(int quantity)
@@ -131,14 +147,46 @@ public static class Market
                     break;
                 }
 
-                int purchased = Math.Min(quantityRemaining, entry.stack);
-                moneySpent += entry.sellPrice * purchased;
-                quantityRemaining -= purchased;
-
-                if (quantityRemaining == 0)
+                if (quantityRemaining <= 0)
                 {
                     break;
                 }
+
+                int purchased = Math.Min(quantityRemaining, entry.stack);
+                moneySpent += entry.sellPrice * purchased;
+                quantityRemaining -= purchased;
+            }
+
+            // it's OK if this NaN's us
+            if (quantityRemaining > 0)
+            {
+                moneySpent += quantityRemaining * vendorPrice;
+            }
+
+            return moneySpent;
+        }
+
+        public float PriceForQuantityFullStack(int quantity)
+        {
+            float vendorPrice = item.VendorPrice();
+
+            int quantityRemaining = quantity;
+            float moneySpent = 0;
+
+            foreach (var entry in Entries)
+            {
+                if (entry.sellPrice >= vendorPrice)
+                {
+                    break;
+                }
+
+                if (quantityRemaining <= 0)
+                {
+                    break;
+                }
+
+                moneySpent += entry.sellPrice * entry.stack;
+                quantityRemaining -= entry.stack;
             }
 
             // it's OK if this NaN's us

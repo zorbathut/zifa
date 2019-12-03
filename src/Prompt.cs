@@ -903,8 +903,13 @@ public static class Prompt
         float expected = Commerce.ValueMarket(item, false, Commerce.TransactionType.Longterm, Market.Latency.Standard);
         if (bracket.marketMax > expected * 1.2f)
         {
-            suffix = $" (expected ~{expected:F0}g/ea)";
+            suffix += $" (expected ~{expected:F0}g/ea)";
         }
+
+        if (bracket.fullStackPrice > bracket.incrementalPrice * 4)
+        {
+            suffix += $" (full stack price x{bracket.fullStackPrice / bracket.incrementalPrice:F2})";
+        }  
 
         if (bracket.marketMin == bracket.marketMax)
         {

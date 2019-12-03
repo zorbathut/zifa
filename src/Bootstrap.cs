@@ -122,7 +122,7 @@ public static class Bootstrap
 
         public string GetSourceString(int crafts)
         {
-            prices.PriceForRange(0, crafts * countForEach, out var bracket);
+            var bracket = prices.BracketForRange(0, crafts * countForEach);
 
             string source;
             if (bracket.containsMarket && bracket.containsVendor)
@@ -152,7 +152,17 @@ public static class Bootstrap
                 coststring= $"{bracket.totalMin:F0}-{bracket.totalMax:F0}";
             }
 
-            return $"buy from {source} for {coststring} x{crafts * countForEach}";
+            string result = $"buy from {source} for {coststring} x{crafts * countForEach}";
+
+            // how much extra we're willing to buy before we start complaining
+            const float bracketExtensionFactor = 4;
+
+            if (bracket.incrementalPrice < bracket.fullStackPrice / bracketExtensionFactor)
+            {
+                result += $" (full stack warning x{bracket.fullStackPrice / bracket.incrementalPrice:F2})";
+            }
+
+            return result;
         }
     }
 
@@ -252,6 +262,12 @@ public static class Bootstrap
 
         string readable = $"\n{recipe.ClassJob.Name}({recipe.RecipeLevelTable.ClassJobLevel}) {recipe.ResultItem.Name} {(hq ? "HQ" : "NQ")} x{toSell} ({recipe.ResultItem.Key}): expected revenue {expectedRevenue * toSell:F0}, {expectedRevenue / recipe.ResultCount:F0}/ea";
 
+        if (toSell == 0)
+        {
+            // let's not and say we didn't
+            return new Util.Twopass.Result() { value = 0, display = readable };
+        }
+
         foreach (var ingredient in ingredients)
         {
             readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
@@ -304,7 +320,6 @@ public static class Bootstrap
             Dbg.Err("Invalid sort method?");
             value = 0;
         }
-        
 
         if (latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
