@@ -342,6 +342,12 @@ public static class Util
             return Math.Min(lhs, rhs);
         }
     }
+
+    public static bool IsCrystal(this SaintCoinach.Xiv.Item item)
+    {
+        // convenient that they're all batched up
+        return item.Key >= 2 && item.Key <= 19;
+    }
 }
 
 public static class EnumUtil

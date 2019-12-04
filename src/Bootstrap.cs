@@ -268,8 +268,16 @@ public static class Bootstrap
             return new Util.Twopass.Result() { value = 0, display = readable };
         }
 
+        // prefix it with crystal shorthand
+        readable += "\n  " + string.Join(", ", ingredients.Where(ing => ing.item.IsCrystal()).Select(ing => $"{ing.item.Name} x{ing.countForEach}"));
+
         foreach (var ingredient in ingredients)
         {
+            if (ingredient.item.IsCrystal())
+            {
+                continue;
+            }
+
             readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
 
             // Strip out 30% of an instance of the first ingredient; base it on the cheapest one because we still have to buy the most expensive
