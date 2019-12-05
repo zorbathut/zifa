@@ -397,7 +397,7 @@ public static class Bootstrap
                         {
                             canHq = true;
                         }
-                        if (recipe.QuickSynthCraftsmanship <= crafttype.craftsmanship)
+                        if (recipe.QuickSynthCraftsmanship <= crafttype.craftsmanship && recipe.RecipeLevelTable.SuggestedCraftsmanship <= crafttype.craftsmanship)
                         {
                             canQuickSynth = true;
                         }
