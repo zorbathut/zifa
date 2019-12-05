@@ -272,7 +272,7 @@ public static class Util
             public string display;
         }
 
-        public static void Process(IEnumerable<Input> inputs, int desiredCount)
+        public static float Process(IEnumerable<Input> inputs, int desiredCount)
         {
             var quickResults = new List<Item>();
 
@@ -324,6 +324,8 @@ public static class Util
             {
                 Dbg.Inf(result.result.display);
             }
+
+            return goodResults.Last().result.value;
         }
     }
 

@@ -59,6 +59,7 @@ public static class Prompt
                 Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
                 Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) [(craftsval) (controlval)] - minmaxes crafting overmeld values");
                 Dbg.Inf("    craftingfood - does stuff to evaluate crafting food? I dunno man, this one isn't really planned out");
+                Dbg.Inf("    customdelivery - evaluates the value of crafting vs. gathering custom deliveries");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
                 Dbg.Inf("    retainergathercache - does various retainergather queries that I've predefined to follow my own characters");
@@ -329,6 +330,17 @@ public static class Prompt
                 {
                     Cache.SetImmediateRecachePoint();
                 }
+                else if (instr == "customdelivery")
+                {
+                    float yg = DoPurchasableAnalysis(Db.ItemLooseSingle(new string[] { "yellow", "gatherer", "scrip" }).Key, 2000);
+                    float wg = DoPurchasableAnalysis(Db.ItemLooseSingle(new string[] { "white", "gatherer", "scrip" }).Key, 2000);
+
+                    float yc = DoPurchasableAnalysis(Db.ItemLooseSingle(new string[] { "yellow", "crafter", "scrip" }).Key, 2000);
+                    float wc = DoPurchasableAnalysis(Db.ItemLooseSingle(new string[] { "white", "crafter", "scrip" }).Key, 2000);
+
+                    Dbg.Inf($"Gatherer delivery: {yg * 143 + wg * 93}");
+                    Dbg.Inf($"Crafter delivery: {yc * 143 + wc * 93}");
+                }
                 else
                 {
                     Dbg.Inf("nope nope nope");
@@ -346,7 +358,7 @@ public static class Prompt
         public string name;
         public Func<bool, Util.Twopass.Result> evaluator;
     }
-    public static void DoPurchasableAnalysis(int itemId, int amount)
+    public static float DoPurchasableAnalysis(int itemId, int amount)
     {
         var dedupOptions = new Dictionary<string, Util.Twopass.Input>();
         foreach (var item in PurchasableAnalysisWorker(itemId, amount))
@@ -357,7 +369,7 @@ public static class Prompt
             }
         }
 
-        Util.Twopass.Process(dedupOptions.Values.Select<Util.Twopass.Input, Util.Twopass.Input>(input => new Util.Twopass.Input() { evaluator = immediate =>
+        return Util.Twopass.Process(dedupOptions.Values.Select<Util.Twopass.Input, Util.Twopass.Input>(input => new Util.Twopass.Input() { evaluator = immediate =>
         {
             var result = input.evaluator(immediate);
             return new Util.Twopass.Result() { value = result.value, display = $"{result.value:F2}: {result.display}" };
