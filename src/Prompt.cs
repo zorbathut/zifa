@@ -17,7 +17,7 @@ public static class Prompt
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex Overmeld = new Regex("^overmeld (?<slots>[0-9]+) (?<cp>[0-9]+) (?<crafts>[0-9]+) (?<control>[0-9]+)( (?<craftsval>[0-9]+) (?<controlval>[0-9]+))?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
-    private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<level>[0-9]+) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     private static Regex RecipeAnalysisCache = new Regex("^recipeanalysiscache (?<solo>(true|false)) (?<bulk>(true|false))$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex RecipeAnalysisSegment = new Regex("^recipeanalysissegment (?<solo>(true|false)) (?<bulk>(true|false)) (?<level>[0-9]+) (?<role>[a-zA-Z]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
@@ -137,9 +137,10 @@ public static class Prompt
                 else if (RetainerGatherRegex.Match(instr) is var rgmatch && rgmatch.Success)
                 {
                     string role = rgmatch.Groups["role"].Value;
+                    int level = int.Parse(rgmatch.Groups["level"].Value);
                     int skill = int.Parse(rgmatch.Groups["skill"].Value);
 
-                    DoRetainerGatherAnalysis(role, skill);
+                    DoRetainerGatherAnalysis(role, level, skill);
                 }
                 else if (instr == "sourcereset")
                 {
@@ -247,7 +248,7 @@ public static class Prompt
                         foreach (var retainer in ZifaConfigDefs.Global.retainers)
                         {
                             Dbg.Inf("vv   " + retainer.name);
-                            DoRetainerGatherAnalysis(retainer.profession, retainer.skill);
+                            DoRetainerGatherAnalysis(retainer.profession, retainer.level, retainer.skill);
                             Dbg.Inf("^^   " + retainer.name);
                         }
                     }
@@ -258,10 +259,10 @@ public static class Prompt
                     for (int i = 0; i < 2; ++i)
                     {
                         Dbg.Inf("\n\n");
-                        DoRetainerGatherAnalysis("dow", 100000);
-                        DoRetainerGatherAnalysis("min", 100000);
-                        DoRetainerGatherAnalysis("btn", 100000);
-                        DoRetainerGatherAnalysis("fsh", 100000);
+                        DoRetainerGatherAnalysis("dow", int.MaxValue, int.MaxValue);
+                        DoRetainerGatherAnalysis("min", int.MaxValue, int.MaxValue);
+                        DoRetainerGatherAnalysis("btn", int.MaxValue, int.MaxValue);
+                        DoRetainerGatherAnalysis("fsh", int.MaxValue, int.MaxValue);
                     }
                 }
                 else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
@@ -792,7 +793,7 @@ public static class Prompt
         Gatherer,
         Fisher,
     }
-    public static void DoRetainerGatherAnalysis(string role, int skill)
+    public static void DoRetainerGatherAnalysis(string role, int level, int skill)
     {
         GatherType gatherer = GatherType.Gatherer;
 
@@ -820,6 +821,11 @@ public static class Prompt
             }
 
             if (gatherer == GatherType.Fisher && task.RequiredGathering > skill)
+            {
+                return false;
+            }
+
+            if (task.RetainerLevel > level)
             {
                 return false;
             }

@@ -3,6 +3,7 @@ public class Retainer
 {
     public string name;
     public string profession;
+    public int level;
     public int skill;
 }
 
