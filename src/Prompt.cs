@@ -258,10 +258,10 @@ public static class Prompt
                     for (int i = 0; i < 2; ++i)
                     {
                         Dbg.Inf("\n\n");
-                        DoRetainerGatherAnalysis("dow", 10000);
-                        DoRetainerGatherAnalysis("min", 10000);
-                        DoRetainerGatherAnalysis("btn", 10000);
-                        DoRetainerGatherAnalysis("fsh", 10000);
+                        DoRetainerGatherAnalysis("dow", 100000);
+                        DoRetainerGatherAnalysis("min", 100000);
+                        DoRetainerGatherAnalysis("btn", 100000);
+                        DoRetainerGatherAnalysis("fsh", 100000);
                     }
                 }
                 else if (RecipeAnalysisCache.Match(instr) is var racmatch && racmatch.Success)
@@ -839,13 +839,13 @@ public static class Prompt
             return true;
         });
 
-        IEnumerable<Util.Twopass.Input> processors = tasks.Select<SaintCoinach.Xiv.RetainerTask, Util.Twopass.Input>(task => new Util.Twopass.Input() { evaluator = immediate =>
+        Util.Twopass.Result GenerateOutput(SaintCoinach.Xiv.RetainerTask task, bool immediate, bool maximized)
         {
             var item = task.Items.First();
 
             // Gotta figure out how many we expect to get.
             var parameter = task["RetainerTaskParameter"] as SaintCoinach.Xiv.XivRow;
-            
+
             int midthresh;
             int highthresh;
 
@@ -865,10 +865,16 @@ public static class Prompt
                 highthresh = parameter.AsInt32("Gathering{DoL}[1]");
             }
 
+            if (highthresh <= skill && maximized)
+            {
+                // we don't need a Maximized version here, we just naturally have it
+                return new Util.Twopass.Result() { value = float.MinValue, display = $"[[CANCELLED]]" };
+            }
+
             var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
 
             int quantity;
-            if (highthresh <= skill)
+            if (highthresh <= skill || maximized)
             {
                 quantity = normal.AsInt32("Quantity[2]");
             }
@@ -896,8 +902,35 @@ public static class Prompt
                 profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, false, throughput, latency) * quantity;
             }
 
-            return new Util.Twopass.Result() { value = profit, display = $"{profit}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
-        } });
+            if (maximized)
+            {
+                return new Util.Twopass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel}, req {highthresh})" };
+            }
+            else
+            {
+                return new Util.Twopass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
+            }
+        }
+
+        IEnumerable<Util.Twopass.Input> processors = Enumerable.Empty<Util.Twopass.Input>();
+
+        processors = processors.Concat(
+            tasks.Select(
+                task => new Util.Twopass.Input()
+                {
+                    evaluator = immediate => GenerateOutput(task, immediate, false)
+                }
+             )
+         );
+
+        processors = processors.Concat(
+            tasks.Select(
+                task => new Util.Twopass.Input()
+                {
+                    evaluator = immediate => GenerateOutput(task, immediate, true)
+                }
+             )
+         );
 
         Util.Twopass.Process(processors, 10);
     }
