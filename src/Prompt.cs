@@ -1071,15 +1071,44 @@ public static class Prompt
         Sourced = Sourced.Where(kvp => kvp.Value > 0).ToDictionary();
 
         {
-            string result = "Market-procured:\n";
+            string result = "Crystals:\n";
+            var remaining = new Dictionary<Market.Pricing, int>();
+            foreach (var kvp in Sourced)
+            {
+                remaining[Market.Prices(kvp.Key, Market.Latency.Immediate)] = kvp.Value;
+            }
+        }
 
+        {
             var remaining = new Dictionary<Market.Pricing, int>();
             foreach (var kvp in Sourced)
             {
                 remaining[Market.Prices(kvp.Key, Market.Latency.Immediate)] = kvp.Value;
             }
 
+            string result = "";
+
             {
+                result += "Crystals:\n";
+                var nextpass = new Dictionary<Market.Pricing, int>();
+                foreach (var itemcombo in remaining.OrderBy(itemcombo => itemcombo.Key.Item.Name))
+                {
+                    if (itemcombo.Key.Item.IsCrystal())
+                    {
+                        result += $"  {itemcombo.Key.Item.Name} x{itemcombo.Value}\n";
+                    }
+                    else
+                    {
+                        nextpass.Add(itemcombo.Key, itemcombo.Value);
+                    }
+                }
+                result += "\n";
+
+                remaining = nextpass;
+            }
+
+            {
+                result += "Market-procured:\n";
                 var nextpass = new Dictionary<Market.Pricing, int>();
                 foreach (var itemcombo in remaining.OrderBy(itemcombo => itemcombo.Key.Item.Name).ProgressBar(false))
                 {
