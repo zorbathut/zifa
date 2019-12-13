@@ -1440,7 +1440,7 @@ public static class Prompt
         const int count = 10;
         foreach (var item in items.ProgressBar().OrderBy(item => item.ItemLevel.Key))
         {
-            float price = Market.Prices(item, Market.Latency.Immediate).PriceForQuantity(count);
+            float price = Market.Prices(item, Market.Latency.Immediate).PriceForQuantity(count) / count;
 
             var enhancement = item.ItemAction as SaintCoinach.Xiv.ItemActions.Enhancement;
             var food = enhancement.ItemFood;
