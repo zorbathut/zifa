@@ -294,18 +294,22 @@ public static class Bootstrap
         {
             float profit = expectedRevenue * toSell - totalCost;
 
+            readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}";
+
             float adjustedProfit = profit;
             if (maxSellPerDay < toSell)
             {
                 // scale down in case we have less sales than we're making
                 adjustedProfit = adjustedProfit / toSell * maxSellPerDay;
+                readable += $", TA profit {adjustedProfit:F0}";
             }
 
-            readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}, adjusted profit {adjustedProfit:F0}";
-
-            if (totalCost * 1f > adjustedProfit)
+            if (adjustedProfit > 0 && totalCost > adjustedProfit)
             {
-                readable += "  == RISKY ==";
+                float riskiness = totalCost / adjustedProfit;
+                adjustedProfit /= riskiness;
+
+                readable += $", TRA profit {adjustedProfit:F0}";
             }
 
             value = adjustedProfit;
