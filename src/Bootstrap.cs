@@ -184,7 +184,14 @@ public static class Bootstrap
             if (sortMethod == SortMethod.Gc)
             {
                 // "sell"
-                maxSellPerDay = 20;
+                if (canQuickSynth)
+                {
+                    maxSellPerDay = 100;
+                }
+                else
+                {
+                    maxSellPerDay = 10;
+                }
             }
             else
             {
@@ -401,7 +408,7 @@ public static class Bootstrap
                         {
                             canHq = true;
                         }
-                        if (recipe.QuickSynthCraftsmanship <= crafttype.craftsmanship && recipe.RecipeLevelTable.SuggestedCraftsmanship <= crafttype.craftsmanship)
+                        if (recipe.CanQuickSynth && recipe.QuickSynthCraftsmanship <= crafttype.craftsmanship && recipe.QuickSynthControl <= crafttype.control && recipe.RecipeLevelTable.SuggestedCraftsmanship <= crafttype.craftsmanship)
                         {
                             canQuickSynth = true;
                         }
