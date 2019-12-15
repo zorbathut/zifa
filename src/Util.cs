@@ -252,17 +252,27 @@ public static class Util
         return source.Skip(Math.Max(0, source.Count() - elements));
     }
 
-    public static class Twopass
+    public static void SortBy<K, V>(this List<V> list, Func<V, K> value)
     {
-        public struct Input
+        list.Sort((lhs, rhs) => Comparer<K>.Default.Compare(value(lhs), value(rhs)));
+    }
+
+    public static float Log2(float input)
+    {
+        return (float)(Math.Log(input) / Math.Log(2));
+    }
+
+    public static class Multipass
+    {
+        public struct Input<PT>
         {
-            public Func<bool, Result> evaluator;
+            public Func<PT, Result> evaluator;
             public object unique;
         }
 
-        private struct Item
+        private struct Item<PT>
         {
-            public Input input;
+            public Input<PT> input;
             public Result result;
         }
 
@@ -272,21 +282,24 @@ public static class Util
             public string display;
         }
 
-        public static float Process(IEnumerable<Input> inputs, int desiredCount)
+        public static float Process<PT>(IEnumerable<Input<PT>> inputs, PT[] passes, int desiredCount)
         {
-            var quickResults = new List<Item>();
+            List<Item<PT>>[] passData = new List<Item<PT>>[passes.Length];
+            for (int i = 0; i < passes.Length; ++i)
+            {
+                passData[i] = new List<Item<PT>>();
+            }
 
             var lastDisplay = DateTimeOffset.Now;
-
             foreach (var input in inputs.ProgressBar())
             {
-                var result = input.evaluator(false);
-                quickResults.Add(new Item() {input = input, result = result});
+                var result = input.evaluator(passes[0]);
+                passData[0].Add(new Item<PT>() {input = input, result = result});
 
                 if (DateTimeOffset.Now - lastDisplay > TimeSpan.FromMinutes(5))
                 {
-                    quickResults = quickResults.OrderBy(x => x.result.value).ToList();
-                    foreach (var displayable in quickResults.TakeLast(desiredCount))
+                    passData[0].SortBy(x => x.result.value);
+                    foreach (var displayable in passData[0].TakeLast(desiredCount))
                     {
                         Dbg.Inf(displayable.result.display);
                     }
@@ -296,41 +309,106 @@ public static class Util
                 }
             }
 
-            quickResults = quickResults.OrderBy(x => x.result.value).ToList();
+            passData[0].SortBy(x => x.result.value);
 
-            var goodResults = new List<Item>();
+            // Time to start doing the pass thing!
 
-            int tested = 0;
-            while (quickResults.Count > 0 && (goodResults.Count < desiredCount || goodResults[goodResults.Count - desiredCount].result.value < quickResults[quickResults.Count - 1].result.value))
+            int[] promoted = new int[passes.Length - 1];
+            var finalPass = passData.Last();
+            while (true)
             {
-                var process = quickResults[quickResults.Count - 1];
-                quickResults.RemoveAt(quickResults.Count - 1);
+                // Our algorithm:
+                // * If our worst desired final-pass result is better than the best result in all previous passes, stop.
+                // * Otherwise, grab the best result in any previous pass and upgrade it to the next pass.
+
+                if (!passData.Take(passes.Length - 1).Any(pass => pass.Any()))
+                {
+                    // We're out of items; stop.
+                    break;
+                }
+
+                // If we just plain don't have enough, don't even bother with the next check
+                if (finalPass.Count >= desiredCount)
+                {
+                    var worstFullyProcessed = finalPass[finalPass.Count - desiredCount];
+
+                    // If the worst fully-processed item we have is better than the best item in all previous passes, we're done.
+                    if (!passData.Take(passes.Length - 1).Any(pass => pass.Last().result.value > worstFullyProcessed.result.value))
+                    {
+                        break;
+                    }
+                }
+
+                // Find the pass with the highest-value item; this is the one we're going to promote
+                var bestPass = -1;
+                for (int i = 0; i < passes.Length - 1; ++i)
+                {
+                    if (!passData[i].Any())
+                    {
+                        continue;
+                    }
+
+                    if (bestPass == -1 || passData[i].Last().result.value > passData[bestPass].Last().result.value)
+                    {
+                        bestPass = i;
+                    }
+                }
+
+                var processTarget = passData[bestPass].Last();
+                passData[bestPass].RemoveAt(passData[bestPass].Count - 1);
 
                 // What we want to figure out here is the number of concrete items done
-                // That's the number in our goodResults table that are better-or-equal compared to the best quickResults item; they will not be removed!
-                int finalized = goodResults.Count(gr => gr.result.value >= process.result.value);
-                Dbg.Inf($"Immediate-testing; tested {tested}, finalized {finalized}/{desiredCount} elements");
-                ++tested;
+                // That's the number in our goodResults table that are better-or-equal compared to the best item in all previous passes; they will theoretically not be removed and are done!
+                float bestElsewhere = passData.Take(passes.Length - 1).Select(pass => pass.Any() ? pass.Last().result.value : 0).Max();
+                int finalized = finalPass.Count(result => result.result.value >= bestElsewhere);
+                var bests = passData.Select(pass => pass.Any() ? Log2(pass.Last().result.value).ToString("F1") : "empty");
+                Dbg.Inf($"Promoting from pass {bestPass}; promoted [{string.Join(", ", promoted)}], bestl2 [{string.Join(", ", bests)}], finalized {finalized}/{desiredCount} elements");
+                ++promoted[bestPass];
 
-                process.result = process.input.evaluator(true);
-                goodResults.Add(process);
+                processTarget.result = processTarget.input.evaluator(passes[bestPass + 1]);
+                passData[bestPass + 1].Add(processTarget);
 
-                goodResults = goodResults.OrderBy(x => x.result.value).ToList();
+                passData[bestPass + 1].SortBy(x => x.result.value);
 
-                // Remove worse un-uniqued elements
-                if (process.input.unique != null)
+                // If we're putting this in the final pass, remove worse un-uniqued elements
+                if (bestPass + 1 == passes.Length - 1 && processTarget.input.unique != null)
                 {
-                    var best = goodResults.Where(r => r.input.unique == process.input.unique).Last();
-                    goodResults = goodResults.Where(r => r.input.evaluator == best.input.evaluator || r.input.unique != best.input.unique).ToList();
+                    if (passData[bestPass + 1] != finalPass)
+                    {
+                        Dbg.Err("Pass mismatch!");
+                    }
+
+                    var bestOfThisUniqueness = finalPass.Where(r => r.input.unique == processTarget.input.unique).Last();
+                    finalPass.RemoveAll(r => r.input.unique == bestOfThisUniqueness.input.unique && r.input.evaluator != bestOfThisUniqueness.input.evaluator);
+                }
+
+                // Maybe show some stuff?
+                if (DateTimeOffset.Now - lastDisplay > TimeSpan.FromMinutes(1))
+                {
+                    // top 5 from each pass, top desiredCount from the final pass
+                    for (int i = 0; i < passes.Length; ++i)
+                    {
+                        Dbg.Inf($"\n\nPass {passes[i]}:\n");
+
+                        int count = (i == passes.Length - 1 ? desiredCount : 5);
+                        foreach (var displayable in passData[i].TakeLast(count))
+                        {
+                            Dbg.Inf("  " + displayable.result.display.Replace("\n", "\n  "));
+                        }
+                    }
+
+                    lastDisplay = DateTimeOffset.Now;
+                    Dbg.Inf("Continuing . . .");
                 }
             }
 
-            foreach (var result in goodResults)
+            // Done!
+            foreach (var result in finalPass.TakeLast(desiredCount))
             {
                 Dbg.Inf(result.result.display);
             }
 
-            return goodResults.Last().result.value;
+            return finalPass.Last().result.value;
         }
     }
 

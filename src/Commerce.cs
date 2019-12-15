@@ -13,11 +13,12 @@ public static class Commerce
         Fastsell,
     }
 
-    public static float ValueMarket(SaintCoinach.Xiv.Item item, bool hq, TransactionType type, Market.Latency latency)
+    public static float ValueMarket(SaintCoinach.Xiv.Item item, bool hq, TransactionType type, Market.Latency latency, out DateTimeOffset retrievalTime)
     {
         // just get this out of the way first; it's a much much cheaper query
         if (!item.IsMarketable())
         {
+            retrievalTime = DateTimeOffset.Now;
             return float.NaN;
         }
 
@@ -27,7 +28,7 @@ public static class Commerce
 
         if (type == TransactionType.Longterm)
         {
-            var results = Market.History(item, latency);
+            var results = Market.History(item, latency, out retrievalTime);
 
             Util.Element builder(Cherenkov.Session.MarketHistoryResponse.Entry entry) => new Util.Element { value = entry.sellPrice, count = entry.stack };
 
@@ -37,7 +38,7 @@ public static class Commerce
         }
         else if (type == TransactionType.Immediate)
         {
-            var results = Market.Prices(item, latency);
+            var results = Market.Prices(item, latency, out retrievalTime);
 
             lqp = results.Entries.Where(entry => entry.hq == false).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
             hqp = results.Entries.Where(entry => entry.hq == true).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
@@ -45,7 +46,7 @@ public static class Commerce
         }
         else if (type == TransactionType.Fastsell)
         {
-            var resulthistory = Market.History(item, latency);
+            var resulthistory = Market.History(item, latency, out retrievalTime);
 
             Util.Element builder(Cherenkov.Session.MarketHistoryResponse.Entry entry) => new Util.Element { value = entry.sellPrice, count = entry.stack };
 
@@ -53,7 +54,11 @@ public static class Commerce
             float hhqp = resulthistory.history.Where(entry => entry.hq == true).Select(builder).Median();
             float hunfiltered = resulthistory.history.Select(builder).Median();
 
-            var resultprices = Market.Prices(item, latency);
+            var resultprices = Market.Prices(item, latency, out var retrievalTime2);
+            if (retrievalTime > retrievalTime2)
+            {
+                retrievalTime = retrievalTime2;
+            }
 
             float plqp = resultprices.Entries.Where(entry => entry.hq == false).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
             float phqp = resultprices.Entries.Where(entry => entry.hq == true).Select(entry => (float)entry.sellPrice).FirstOrDefault(float.NaN);
@@ -66,6 +71,7 @@ public static class Commerce
         else
         {
             Dbg.Err("uhhhh wut");
+            retrievalTime = DateTimeOffset.Now; // I guess?
             return float.NaN;
         }
 
@@ -86,6 +92,12 @@ public static class Commerce
         }
 
         return hq ? hqp : lqp;
+    }
+
+    public static float ValueMarket(SaintCoinach.Xiv.Item item, bool hq, TransactionType type, Market.Latency latency)
+    {
+        DateTimeOffset _;
+        return ValueMarket(item, hq, type, latency, out _);
     }
 
     public static float MarketSalesPerDay(SaintCoinach.Xiv.Item item, bool hq, Market.Latency latency)

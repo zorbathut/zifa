@@ -87,7 +87,6 @@ public static class Market
 
             if (start == end)
             {
-                // perf hack
                 return 0;
             }
 
@@ -249,7 +248,7 @@ public static class Market
         return History(item, latency, out _);
     }
 
-    private static TimeSpan GetCacheTime(SaintCoinach.Xiv.Item item, Latency latency)
+    public static TimeSpan GetCacheRefreshTime(SaintCoinach.Xiv.Item item, Latency latency)
     {
         if (latency == Latency.Standard)
         {
@@ -273,7 +272,7 @@ public static class Market
         }
 
         Dbg.Err("what's going on with a bad latency?");
-        return GetCacheTime(item, Latency.Standard);
+        return GetCacheRefreshTime(item, Latency.Standard);
     }
 
     public static Cherenkov.Session.MarketHistoryResponse History(SaintCoinach.Xiv.Item item, Latency latency, out DateTimeOffset retrievalTime)
@@ -284,19 +283,26 @@ public static class Market
             return null;
         }
 
-        var apiresult = Api.RetrieveHistory(item, GetCacheTime(item, latency), out retrievalTime);
+        var apiresult = Api.RetrieveHistory(item, GetCacheRefreshTime(item, latency), out retrievalTime);
         
         return apiresult;
     }
 
-    public static Pricing Prices(SaintCoinach.Xiv.Item item, Latency latency)
+    public static Pricing Prices(SaintCoinach.Xiv.Item item, Latency latency, out DateTimeOffset retrievalTime)
     {
         if (!item.IsMarketable())
         {
+            retrievalTime = DateTimeOffset.Now;
             return new Pricing(null, item);
         }
 
-        return Api.RetrievePricing(item, GetCacheTime(item, latency));
+        return Api.RetrievePricing(item, GetCacheRefreshTime(item, latency), out retrievalTime);
+    }
+
+    public static Pricing Prices(SaintCoinach.Xiv.Item item, Latency latency)
+    {
+        DateTimeOffset _;
+        return Prices(item, latency, out _);
     }
 
     public static bool IsSelling(SaintCoinach.Xiv.Item item)

@@ -357,24 +357,24 @@ public static class Prompt
     private struct PurchasableOption
     {
         public string name;
-        public Func<bool, Util.Twopass.Result> evaluator;
+        public Func<bool, Util.Multipass.Result> evaluator;
     }
     public static float DoPurchasableAnalysis(int itemId, int amount)
     {
-        var dedupOptions = new Dictionary<string, Util.Twopass.Input>();
+        var dedupOptions = new Dictionary<string, Util.Multipass.Input<bool>>();
         foreach (var item in PurchasableAnalysisWorker(itemId, amount))
         {
             if (!dedupOptions.ContainsKey(item.name))
             {
-                dedupOptions[item.name] = new Util.Twopass.Input() { evaluator = item.evaluator };
+                dedupOptions[item.name] = new Util.Multipass.Input<bool>() { evaluator = item.evaluator };
             }
         }
 
-        return Util.Twopass.Process(dedupOptions.Values.Select<Util.Twopass.Input, Util.Twopass.Input>(input => new Util.Twopass.Input() { evaluator = immediate =>
+        return Util.Multipass.Process(dedupOptions.Values.Select<Util.Multipass.Input<bool>, Util.Multipass.Input<bool>>(input => new Util.Multipass.Input<bool>() { evaluator = immediate =>
         {
             var result = input.evaluator(immediate);
-            return new Util.Twopass.Result() { value = result.value, display = $"{result.value:F2}: {result.display}" };
-        } }), 10);
+            return new Util.Multipass.Result() { value = result.value, display = $"{result.value:F2}: {result.display}" };
+        } }), new bool[] { false, true }, 10);
     }
 
     private static IEnumerable<PurchasableOption> PurchasableAnalysisWorker(int itemId, float amountAcquired)
@@ -426,7 +426,7 @@ public static class Prompt
                     yield return new PurchasableOption() { name = label, evaluator = immediate => {
                         float valueBase = Commerce.ValueSell(reward.Item, reward.IsHq, immediate ? Market.Latency.Immediate : Market.Latency.Standard) * reward.Count;
                         float valueAdjusted = Commerce.MarketProfitAdjuster(valueBase, reward.Item, reward.IsHq, amountAcquired / cost  * reward.Count, immediate ? Market.Latency.Immediate : Market.Latency.Standard);
-                        return new Util.Twopass.Result() { value = valueAdjusted / cost, display = label };
+                        return new Util.Multipass.Result() { value = valueAdjusted / cost, display = label };
                     }};
                 }
 
@@ -437,7 +437,7 @@ public static class Prompt
                     {
                         string nestedlabel = $"{label} -> {elem.name}";
                         yield return new PurchasableOption() { name = nestedlabel, evaluator = immediate => {
-                            return new Util.Twopass.Result() { value = elem.evaluator(immediate).value / cost * reward.Count, display = nestedlabel };
+                            return new Util.Multipass.Result() { value = elem.evaluator(immediate).value / cost * reward.Count, display = nestedlabel };
                         }};
                     }
                 }
@@ -604,17 +604,17 @@ public static class Prompt
             }
         }
 
-        Util.Twopass.Input function(SaintCoinach.Xiv.Item item) => new Util.Twopass.Input() { evaluator = immediate =>
+        Util.Multipass.Input<bool> function(SaintCoinach.Xiv.Item item) => new Util.Multipass.Input<bool>() { evaluator = immediate =>
         {
             bool lim = !unlimited.Contains(item);
             var latency = immediate ? Market.Latency.Immediate : Market.Latency.Standard;
             float value = Commerce.MarketProfitAdjuster(Commerce.ValueSell(item, false, latency), item, false, lim ? 10 : 99, latency);
             string badge = lim ? "LIM" : "   ";
-            return new Util.Twopass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
+            return new Util.Multipass.Result() { value = value, display = $"{badge} {value}: {item.Name}" };
         } };
 
-        Util.Twopass.Process(prospective.Where(item => unlimited.Contains(item)).Select(function), 20);
-        Util.Twopass.Process(prospective.Select(function), 20);
+        Util.Multipass.Process(prospective.Where(item => unlimited.Contains(item)).Select(function), new bool[] { false, true }, 20);
+        Util.Multipass.Process(prospective.Select(function), new bool[] { false, true }, 20);
     }
 
     public static void DoItemAnalysis(IEnumerable<SaintCoinach.Xiv.Item> items)
@@ -654,7 +654,22 @@ public static class Prompt
                         Dbg.Inf("  Crafting:");
                         recipeHeadered = true;
                     }
-                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, false, true, Market.Latency.Immediate, true, true, Bootstrap.SortMethod.Profit, true).display.Replace("\n", "\n  "));
+
+                    var evaluationSettings = new Bootstrap.EvaluationSettings()
+                    {
+                        latency = Market.Latency.Immediate,
+
+                        forGc = false,
+                        ignoreIngredients = false,
+
+                        allowReuse = true,
+                        canQuickSynth = true,
+
+                        disallowSolo = false,
+                        disallowBulk = false,
+                    };
+
+                    Dbg.Inf("  " + Bootstrap.EvaluateItem(recipe, item.CanBeHq, evaluationSettings).display.Replace("\n", "\n  "));
                     Dbg.Inf("");
                 }
             }
@@ -845,7 +860,7 @@ public static class Prompt
             return true;
         });
 
-        Util.Twopass.Result GenerateOutput(SaintCoinach.Xiv.RetainerTask task, bool immediate, bool maximized)
+        Util.Multipass.Result GenerateOutput(SaintCoinach.Xiv.RetainerTask task, bool immediate, bool maximized)
         {
             var item = task.Items.First();
 
@@ -874,7 +889,7 @@ public static class Prompt
             if (highthresh <= skill && maximized)
             {
                 // we don't need a Maximized version here, we just naturally have it
-                return new Util.Twopass.Result() { value = float.MinValue, display = $"[[CANCELLED]]" };
+                return new Util.Multipass.Result() { value = float.MinValue, display = $"[[CANCELLED]]" };
             }
 
             var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
@@ -910,19 +925,19 @@ public static class Prompt
 
             if (maximized)
             {
-                return new Util.Twopass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel}, req {highthresh})" };
+                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel}, req {highthresh})" };
             }
             else
             {
-                return new Util.Twopass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
+                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
             }
         }
 
-        IEnumerable<Util.Twopass.Input> processors = Enumerable.Empty<Util.Twopass.Input>();
+        IEnumerable<Util.Multipass.Input<bool>> processors = Enumerable.Empty<Util.Multipass.Input<bool>>();
 
         processors = processors.Concat(
             tasks.Select(
-                task => new Util.Twopass.Input()
+                task => new Util.Multipass.Input<bool>()
                 {
                     evaluator = immediate => GenerateOutput(task, immediate, false)
                 }
@@ -931,14 +946,14 @@ public static class Prompt
 
         processors = processors.Concat(
             tasks.Select(
-                task => new Util.Twopass.Input()
+                task => new Util.Multipass.Input<bool>()
                 {
                     evaluator = immediate => GenerateOutput(task, immediate, true)
                 }
              )
          );
 
-        Util.Twopass.Process(processors, 10);
+        Util.Multipass.Process(processors, new bool[] { false, true }, 10);
     }
 
     private static Dictionary<SaintCoinach.Xiv.Item, int> Sourced = new Dictionary<SaintCoinach.Xiv.Item, int>();
@@ -1069,15 +1084,6 @@ public static class Prompt
     {
         // Strip out negatives
         Sourced = Sourced.Where(kvp => kvp.Value > 0).ToDictionary();
-
-        {
-            string result = "Crystals:\n";
-            var remaining = new Dictionary<Market.Pricing, int>();
-            foreach (var kvp in Sourced)
-            {
-                remaining[Market.Prices(kvp.Key, Market.Latency.Immediate)] = kvp.Value;
-            }
-        }
 
         {
             var remaining = new Dictionary<Market.Pricing, int>();

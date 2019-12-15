@@ -166,25 +166,57 @@ public static class Bootstrap
         }
     }
 
-    public static Util.Twopass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, bool canQuickSynth, Market.Latency latency, bool includeSolo, bool includeBulk, SortMethod sortMethod, bool allowReuse)
+    public struct EvaluationSettings
+    {
+        // this is the only part that really has to be set
+        public Market.Latency latency;
+
+        // evaluation setup
+        public bool forGc;
+        public bool ignoreIngredients;
+
+        // allowable abilities
+        public bool allowReuse;
+        public bool canQuickSynth;
+
+        // allowable recipe types
+        public bool disallowSolo;
+        public bool disallowBulk;
+    }
+    public static Util.Multipass.Result EvaluateItem(SaintCoinach.Xiv.Recipe recipe, bool hq, EvaluationSettings settings)
     {
         const float expectedProfitMargin = 1.5f;
 
+        if (hq)
+        {
+            settings.canQuickSynth = false;
+        }
+
         var result = recipe.ResultItem;
-        float expectedRevenue = Commerce.ValueSell(result, hq, latency) * recipe.ResultCount;
+        float expectedRevenue = Commerce.ValueSell(result, hq, settings.latency) * recipe.ResultCount;
         
         // Build our ingredient lists
-        var ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item, latency) }).ToArray();
+        IngredientData[] ingredients;
+
+        if (!settings.ignoreIngredients)
+        {
+            ingredients = recipe.Ingredients.Select(ingredient => new IngredientData() { item = ingredient.Item, countForEach = ingredient.Count, prices = Market.Prices(ingredient.Item, settings.latency) }).ToArray();
+        }
+        else
+        {
+            ingredients = new IngredientData[0];
+            settings.allowReuse = false;    // otherwise it explodes messily
+        }
 
         int toSell = 0;
         float totalCost = 0;
-        float effortBaseCost = (sortMethod == SortMethod.Gc) ? 50000 : 0;
+        float effortBaseCost = settings.forGc ? 50000 : 0;
         float maxSellPerDay;
         {
-            if (sortMethod == SortMethod.Gc)
+            if (settings.forGc)
             {
                 // "sell"
-                if (canQuickSynth)
+                if (settings.canQuickSynth)
                 {
                     maxSellPerDay = 100;
                 }
@@ -196,24 +228,24 @@ public static class Bootstrap
             else
             {
                 // Can't bulk-produce HQ, unfortunately
-                bool allowBulkProduction = includeBulk && canQuickSynth && !hq;
+                bool allowBulkProduction = !settings.disallowBulk && settings.canQuickSynth && !hq;
 
                 // This is the number of recipe productions that we're allowed to sell per day
-                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result, hq, latency), Commerce.MarketExpectedStackSale(result, latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
+                maxSellPerDay = Math.Min(Math.Min(Commerce.MarketSalesPerDay(result, hq, settings.latency), Commerce.MarketExpectedStackSale(result, settings.latency)), Math.Min(result.StackSize, 99)) / recipe.ResultCount;
                 if (!allowBulkProduction)
                 {
                     maxSellPerDay = Math.Min(maxSellPerDay, 1);
                 }
             }
 
-            if (!includeSolo && maxSellPerDay <= 1)
+            if (settings.disallowSolo && maxSellPerDay <= 1)
             {
-                return new Util.Twopass.Result() { value = float.MinValue, display = "{REMOVED}" };
+                return new Util.Multipass.Result() { value = float.MinValue, display = "{REMOVED}" };
             }
 
             if (maxSellPerDay > 1)
             {
-                allowReuse = false;
+                settings.allowReuse = false;
             }
 
             for (int i = 0; i < (int)Math.Ceiling(maxSellPerDay); ++i)
@@ -237,11 +269,11 @@ public static class Bootstrap
                     // we need at least one!
                     accept = true;
                 }
-                else if (sortMethod != SortMethod.Gc && itemCost * expectedProfitMargin < expectedRevenue)
+                else if (!settings.forGc && itemCost * expectedProfitMargin < expectedRevenue)
                 {
                     accept = true;
                 }
-                else if (sortMethod == SortMethod.Gc)
+                else if (settings.forGc)
                 {
                     // mathematically, these should both be multiplied by (result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals
                     // but obviously that doesn't change the outcome of the equation
@@ -272,11 +304,14 @@ public static class Bootstrap
         if (toSell == 0)
         {
             // let's not and say we didn't
-            return new Util.Twopass.Result() { value = 0, display = readable };
+            return new Util.Multipass.Result() { value = 0, display = readable };
         }
 
-        // prefix it with crystal shorthand
-        readable += "\n  " + string.Join(", ", ingredients.Where(ing => ing.item.IsCrystal()).Select(ing => $"{ing.item.Name} x{ing.countForEach}"));
+        // if we have any ingredients, we must have crystals, and prefix it with crystal shorthand
+        if (ingredients.Length > 0)
+        {
+            readable += "\n  " + string.Join(", ", ingredients.Where(ing => ing.item.IsCrystal()).Select(ing => $"{ing.item.Name} x{ing.countForEach}"));
+        }
 
         foreach (var ingredient in ingredients)
         {
@@ -288,23 +323,23 @@ public static class Bootstrap
             readable += "\n" + $"  {ingredient.item.Name}: {ingredient.GetSourceString(toSell)}";
 
             // Strip out 30% of an instance of the first ingredient; base it on the cheapest one because we still have to buy the most expensive
-            if (allowReuse)
+            if (settings.allowReuse)
             {
                 totalCost -= 0.3f * ingredients[0].prices.PriceForQuantity(1);
                 readable += " (REUSE)";
-                allowReuse = false;
+                settings.allowReuse = false;
             }
         }
 
         float value;
-        if (sortMethod == SortMethod.Order || sortMethod == SortMethod.Profit)
+        if (!settings.forGc)
         {
             float profit = expectedRevenue * toSell - totalCost;
 
             readable += "\n" + $"  Total cost: {totalCost:F0}, total profit {profit:F0}";
 
             float adjustedProfit = profit;
-            if (maxSellPerDay < toSell)
+            if (adjustedProfit > 0 && maxSellPerDay < toSell)
             {
                 // scale down in case we have less sales than we're making
                 adjustedProfit = adjustedProfit / toSell * maxSellPerDay;
@@ -321,7 +356,7 @@ public static class Bootstrap
 
             value = adjustedProfit;
         }
-        else if (sortMethod == SortMethod.Gc)
+        else
         {
             int seals = (result as SaintCoinach.Xiv.Items.Equipment).ExpertDeliverySeals;
             float baseCostPerItem = totalCost / toSell;
@@ -334,23 +369,25 @@ public static class Bootstrap
 
             value = adjValue;
         }
-        else
-        {
-            Dbg.Err("Invalid sort method?");
-            value = 0;
-        }
 
-        if (latency == Market.Latency.Immediate && Market.IsSelling(result))
+        if (settings.latency == Market.Latency.Immediate && Market.IsSelling(result))
         {
             readable = readable.Replace("\n", "\n    ");
         }
 
-        return new Util.Twopass.Result() { value = value, display = readable };
+        return new Util.Multipass.Result() { value = value, display = readable };
     }
 
+    public enum EvaluationMode
+    {
+        HistoryPrepass,
+        Ingredientless,
+        Cached,
+        Immediate,
+    }
     public static void DoRecipeAnalysis(CraftingInfo[] craftingInfo, SortMethod sortMethod, bool includeSolo, bool includeBulk)
     {
-        var evaluators = new List<Util.Twopass.Input>();
+        var evaluators = new List<Util.Multipass.Input<EvaluationMode>>();
 
         foreach (var recipe in Db.GetSheet<SaintCoinach.Xiv.Recipe>())
         {
@@ -425,25 +462,74 @@ public static class Bootstrap
                 }
             }
 
-            if (canHq && result.CanBeHq && sortMethod != SortMethod.Gc)
+            Util.Multipass.Result ProcessWorker(EvaluationMode mode, bool hq)
             {
-                evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, true, false, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod, canReuse), unique = result });
+                var latency = Market.Latency.Standard;
+                if (mode == EvaluationMode.HistoryPrepass)
+                {
+                    latency = Market.Latency.CacheOnly;
+                }
+                else if (mode == EvaluationMode.Immediate)
+                {
+                    latency = Market.Latency.Immediate;
+                }
+
+                var evaluationSettings = new EvaluationSettings()
+                {
+                    latency = latency,
+
+                    forGc = sortMethod == SortMethod.Gc,
+                    ignoreIngredients = mode <= EvaluationMode.Ingredientless,
+
+                    allowReuse = canReuse,
+                    canQuickSynth = canQuickSynth,
+
+                    disallowSolo = !includeSolo,
+                    disallowBulk = !includeBulk,
+                };
+
+                var processResult = EvaluateItem(recipe, hq, evaluationSettings);
+
+                if (mode == EvaluationMode.HistoryPrepass)
+                {
+                    Market.History(result, Market.Latency.CacheOnly, out var retrievalTime);
+
+                    var cacheRefreshTime = Market.GetCacheRefreshTime(result, Market.Latency.Standard);
+
+                    var cacheAge = DateTimeOffset.Now - retrievalTime;
+
+                    // multiply it by 2^(how many cache multiples we're old)
+                    float factor = (float)(cacheAge.TotalDays / cacheRefreshTime.TotalDays - 1);
+
+                    if (factor > 0)
+                    {
+                        processResult.value *= (float)Math.Pow(2, factor);
+                        processResult.display += $"\n  Cache invalidation logfactor {factor:F2}";
+                    }
+                }
+
+                return processResult;
             }
 
-            evaluators.Add(new Util.Twopass.Input() { evaluator = immediate => EvaluateItem(recipe, false, canQuickSynth, immediate ? Market.Latency.Immediate : Market.Latency.Standard, includeSolo, includeBulk, sortMethod, canReuse), unique = result });
+            if (canHq && result.CanBeHq && sortMethod != SortMethod.Gc)
+            {
+                evaluators.Add(new Util.Multipass.Input<EvaluationMode>() { evaluator = mode => ProcessWorker(mode, true), unique = result });
+            }
+
+            evaluators.Add(new Util.Multipass.Input<EvaluationMode>() { evaluator = mode => ProcessWorker(mode, false), unique = result });
         }
 
         if (sortMethod == SortMethod.Order)
         {
             // ToArray forces it to be evaluated before printing so we don't interlace with debug output
-            foreach (var output in evaluators.ProgressBar().Select(item => item.evaluator(false).display).ToArray())
+            foreach (var output in evaluators.ProgressBar().Select(item => item.evaluator(EvaluationMode.Cached).display).ToArray())
             {
                 Dbg.Inf(output);
             }
         }
         else if (sortMethod == SortMethod.Profit || sortMethod == SortMethod.Gc)
         {
-            Util.Twopass.Process(evaluators, 20);
+            Util.Multipass.Process(evaluators, new EvaluationMode[] { EvaluationMode.HistoryPrepass, EvaluationMode.Ingredientless, EvaluationMode.Cached, EvaluationMode.Immediate }, 20);
         }
     }
 
