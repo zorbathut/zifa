@@ -300,12 +300,17 @@ public static class Util
 
             var goodResults = new List<Item>();
 
+            int tested = 0;
             while (quickResults.Count > 0 && (goodResults.Count < desiredCount || goodResults[goodResults.Count - desiredCount].result.value < quickResults[quickResults.Count - 1].result.value))
             {
-                Dbg.Inf($"Immediate-testing; at {goodResults.Count}/{desiredCount} elements");
-
                 var process = quickResults[quickResults.Count - 1];
                 quickResults.RemoveAt(quickResults.Count - 1);
+
+                // What we want to figure out here is the number of concrete items done
+                // That's the number in our goodResults table that are better-or-equal compared to the best quickResults item; they will not be removed!
+                int finalized = goodResults.Count(gr => gr.result.value >= process.result.value);
+                Dbg.Inf($"Immediate-testing; tested {tested}, finalized {finalized}/{desiredCount} elements");
+                ++tested;
 
                 process.result = process.input.evaluator(true);
                 goodResults.Add(process);
