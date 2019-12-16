@@ -366,8 +366,14 @@ public static class Util
                 ++promoted[bestPass];
 
                 processTarget.result = processTarget.input.evaluator(passes[bestPass + 1]);
-                passData[bestPass + 1].Add(processTarget);
 
+                if (float.IsNaN(processTarget.result.value))
+                {
+                    // Well, that's terrible.
+                    continue;
+                }
+
+                passData[bestPass + 1].Add(processTarget);
                 passData[bestPass + 1].SortBy(x => x.result.value);
 
                 // If we're putting this in the final pass, remove worse un-uniqued elements
