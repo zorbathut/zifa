@@ -333,7 +333,7 @@ public static class Util
                     var worstFullyProcessed = finalPass[finalPass.Count - desiredCount];
 
                     // If the worst fully-processed item we have is better than the best item in all previous passes, we're done.
-                    if (!passData.Take(passes.Length - 1).Any(pass => pass.Last().result.value > worstFullyProcessed.result.value))
+                    if (!passData.Take(passes.Length - 1).Any(pass => pass.Any() && pass.Last().result.value > worstFullyProcessed.result.value))
                     {
                         break;
                     }
