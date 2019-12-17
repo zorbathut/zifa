@@ -193,7 +193,16 @@ public static class Bootstrap
         }
 
         var result = recipe.ResultItem;
-        float expectedRevenue = Commerce.ValueSell(result, hq, settings.latency) * recipe.ResultCount;
+        float expectedRevenue;
+        if (!settings.forGc)
+        {
+            expectedRevenue = Commerce.ValueSell(result, hq, settings.latency) * recipe.ResultCount;
+        }
+        else
+        {
+            // we don't actually care
+            expectedRevenue = 0;
+        }
         
         // Build our ingredient lists
         IngredientData[] ingredients;
@@ -527,9 +536,13 @@ public static class Bootstrap
                 Dbg.Inf(output);
             }
         }
-        else if (sortMethod == SortMethod.Profit || sortMethod == SortMethod.Gc)
+        else if (sortMethod == SortMethod.Profit)
         {
             Util.Multipass.Process(evaluators, new EvaluationMode[] { EvaluationMode.HistoryPrepass, EvaluationMode.Ingredientless, EvaluationMode.Cached, EvaluationMode.Immediate }, 20);
+        }
+        else if (sortMethod == SortMethod.Gc)
+        {
+            Util.Multipass.Process(evaluators, new EvaluationMode[] { EvaluationMode.Ingredientless, EvaluationMode.Cached, EvaluationMode.Immediate }, 20);
         }
     }
 
