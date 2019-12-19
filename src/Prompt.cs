@@ -16,6 +16,7 @@ public static class Prompt
     private static Regex GatherCalcRegex = new Regex("^gathercalc (?<lchance>[0-9]+) (?<hqchance>[0-9]+) (?<maxgp>[0-9]+) (?<attempts>[0-9]+) (?<hqonly>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex CofferRegex = new Regex("^coffer (?<ilevel>[0-9]+) (?<slot>[^ ]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex Overmeld = new Regex("^overmeld (?<slots>[0-9]+) (?<cp>[0-9]+) (?<crafts>[0-9]+) (?<control>[0-9]+)( (?<craftsval>[0-9]+) (?<controlval>[0-9]+))?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex Food = new Regex("^food (?<stat>[^ ]+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     private static Regex RetainerGatherRegex = new Regex("^retainergather (?<role>(dow|btn|min|fsh)) (?<level>[0-9]+) (?<skill>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
@@ -58,7 +59,7 @@ public static class Prompt
                 Dbg.Inf("    retainergather {dow/btn/min/fsh} {skill} - calculates the best items for retainers to gather");
                 Dbg.Inf("    coffer {ilevel} {slot} - calculates the value of results from adaptive coffers");
                 Dbg.Inf("    overmeld (slots) (cp) (crafts) (control) [(craftsval) (controlval)] - minmaxes crafting overmeld values");
-                Dbg.Inf("    craftingfood - does stuff to evaluate crafting food? I dunno man, this one isn't really planned out");
+                Dbg.Inf("    food (stat) - finds food with the chosen stat (choose wisely)");
                 Dbg.Inf("    customdelivery - evaluates the value of crafting vs. gathering custom deliveries");
                 Dbg.Inf("");
                 Dbg.Inf("  Stat-based commands:");
@@ -323,9 +324,9 @@ public static class Prompt
                         omatch.Groups["craftsval"].Length > 0 ? int.Parse(omatch.Groups["craftsval"].Value) : 50000,
                         omatch.Groups["controlval"].Length > 0 ? int.Parse(omatch.Groups["controlval"].Value) : 200000);
                 }
-                else if (instr == "craftingfood")
+                else if (Food.Match(instr) is var fmatch && fmatch.Success)
                 {
-                    AnalyzeCraftingFood();
+                    AnalyzeFood(fmatch.Groups["stat"].Value);
                 }
                 else if (instr == "recachepoint")
                 {
@@ -1417,7 +1418,7 @@ public static class Prompt
         }
     }
 
-    public static void AnalyzeCraftingFood()
+    public static void AnalyzeFood(string stat)
     {
         var items = Db.GetSheet<SaintCoinach.Xiv.Item>().Where(item =>
         {
@@ -1433,7 +1434,7 @@ public static class Prompt
                 return false;
             }
 
-            if (!food.Parameters.Any(param => param.BaseParam.Name == "CP"))
+            if (!food.Parameters.Any(param => param.BaseParam.Name.ToString().ToLower() == stat.ToLower()))
             {
                 return false;
             }
