@@ -229,8 +229,8 @@ public static class Market
 
             var medianAge = TimeSpan.FromSeconds(cached.history.Select(history => new Util.Element { value = firstDate.ToUnixTimeSeconds() - history.buyRealDate / 1000, count = history.stack }).Median());
 
-            float minimumSeconds = 60 * 60 * 6; // six hours
-            float maximumSeconds = 60 * 60 * 24 * 7;    //  seven days
+            float minimumSeconds = (float)TimeSpan.FromDays(1).TotalSeconds;
+            float maximumSeconds = (float)TimeSpan.FromDays(7).TotalSeconds;
 
             invalidationTime = TimeSpan.FromSeconds(MathUtil.Clamp(Math.Min(halfSpan.TotalSeconds, medianAge.TotalSeconds), minimumSeconds, maximumSeconds));
         }
