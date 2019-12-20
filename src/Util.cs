@@ -354,15 +354,15 @@ public static class Util
                     }
                 }
 
-                var processTarget = passData[bestPass].Last();
-                passData[bestPass].RemoveAt(passData[bestPass].Count - 1);
-
                 // What we want to figure out here is the number of concrete items done
                 // That's the number in our goodResults table that are better-or-equal compared to the best item in all previous passes; they will theoretically not be removed and are done!
                 float bestElsewhere = passData.Take(passes.Length - 1).Select(pass => pass.Any() ? pass.Last().result.value : 0).Max();
                 int finalized = finalPass.Count(result => result.result.value >= bestElsewhere);
-                var bests = passData.Select(pass => pass.Any() ? Log2(pass.Last().result.value).ToString("F1") : "empty");
-                Dbg.Inf($"Promoting from pass {bestPass}; promoted [{string.Join(", ", promoted)}], bestl2 [{string.Join(", ", bests)}], finalized {finalized}/{desiredCount} elements");
+                var bests = passData.Select(pass => pass.Any() ? pass.Last().result.value.ToHumanReadable() : "empty");
+                Dbg.Inf($"Promoting from pass {bestPass}; promoted [{string.Join(", ", promoted)}], best [{string.Join(", ", bests)}], finalized {finalized}/{desiredCount} elements");
+
+                var processTarget = passData[bestPass].Last();
+                passData[bestPass].RemoveAt(passData[bestPass].Count - 1);
                 ++promoted[bestPass];
 
                 processTarget.result = processTarget.input.evaluator(passes[bestPass + 1]);
@@ -438,6 +438,38 @@ public static class Util
     {
         // convenient that they're all batched up
         return item.Key >= 2 && item.Key <= 19;
+    }
+
+    static string[] Extensions = new string[] { "", "k", "m", "g", "t", "p", "e", "y", "z"};
+    public static string ToHumanReadable(this float val)
+    {
+        if (val < 0)
+        {
+            return "-" + ToHumanReadable(-val);
+        }
+
+        int ext = 0;
+
+        while (true)
+        {
+            if (val < 1)
+            {
+                return $"{val:F2}{Extensions[ext]}";
+            }
+            else if (val < 10)
+            {
+                return $"{val:F1}{Extensions[ext]}";
+            }
+            else if (val < 1000)
+            {
+                return $"{val:F0}{Extensions[ext]}";
+            }
+            else
+            {
+                ++ext;
+                val /= 1000;
+            }
+        }
     }
 }
 
