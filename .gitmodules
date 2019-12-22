@@ -1,6 +1,6 @@
 [submodule "thirdparty/SaintCoinach"]
 	path = thirdparty/SaintCoinach
-	url = https://github.com/ufx/SaintCoinach.git
+	url = https://github.com/zorbathut/SaintCoinach.git
 [submodule "thirdparty/def"]
 	path = thirdparty/def
 	url = https://github.com/zorbathut/def.git
