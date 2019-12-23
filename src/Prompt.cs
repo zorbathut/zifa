@@ -852,6 +852,11 @@ public static class Prompt
                 return false;
             }
 
+            if (items[0].Key == 0)
+            {
+                return false;
+            }
+
             var normal = task.Task as SaintCoinach.Xiv.RetainerTaskNormal;
             if (normal == null)
             {
@@ -924,13 +929,14 @@ public static class Prompt
                 profit += Commerce.MarketProfitAdjuster(Commerce.ValueMarket(item, false, Commerce.TransactionType.Fastsell, latency), item, false, throughput, latency) * quantity;
             }
 
+            float gpd = Commerce.MarketSalesPerDay(item, false, Market.Latency.CacheOnly) / quantity;
             if (maximized)
             {
-                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel}, req {highthresh})" };
+                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (gpd {gpd:F1}, lv{task.RetainerLevel}, req {highthresh})" };
             }
             else
             {
-                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (lv{task.RetainerLevel})" };
+                return new Util.Multipass.Result() { value = profit, display = $"{profit:F0}: {quantity}x {item.Name} (gpd {gpd:F1}, lv{task.RetainerLevel})" };
             }
         }
 
