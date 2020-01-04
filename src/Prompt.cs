@@ -1179,10 +1179,11 @@ public static class Prompt
 
                 if (npcCounts.Count == 0)
                 {
-                    result += "\nCan't be found:\n";
+                    result += "\nCan't be found:";
                     foreach (var item in remaining)
                     {
-                        result += CraftSourceFormatterVendor(item.Key.Item, item.Value);
+                        float expected = Commerce.ValueMarket(item.Key.Item, false, Commerce.TransactionType.Longterm, Market.Latency.Standard);
+                        result += $"\n  {item.Key.Item.Name} x{item.Value} (expected ~{expected}gil/ea)";
                     }
                     break;
                 }
