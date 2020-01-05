@@ -28,7 +28,7 @@ public static class Prompt
     private static Regex SourceAddRegex = new Regex("^sourceadd (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex SourceRemoveRegex = new Regex("^sourceremove (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
     private static Regex SourceCraftRegex = new Regex("^sourcecraft (?<count>[0-9]+)( (?<token>[^ ]+))+$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-    private static Regex SourceCraftRangeRegex = new Regex("^sourcecraftrange (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+) (?<levelmax>[0-9]+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
+    private static Regex SourceCraftRangeRegex = new Regex("^sourcecraftrange (?<role>[a-zA-Z]+) (?<levelmin>[0-9]+)(\\.(?<starsmin>[0-9]+))? (?<levelmax>[0-9]+)(\\.(?<starsmax>[0-9]+))?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
 
     public static void Run()
     {
@@ -76,7 +76,7 @@ public static class Prompt
                 Dbg.Inf("    sourceadd {count} {itemdescr} - adds an item to the sourcing list");
                 Dbg.Inf("    sourceremove {count} {itemdescr} - removes an item from the sourcing list");
                 Dbg.Inf("    sourcecraft {count} {itemdescr} - adds components to craft an item to the sourcing list");
-                Dbg.Inf("    sourcecraftrange {crafter} {levelmin} {levelmax} - adds items based on a level range for crafters");
+                Dbg.Inf("    sourcecraftrange {crafter} {levelmin}(.{starsmin})? {levelmax}(.{starsmax})? - adds items based on a level range for crafters");
                 Dbg.Inf("");
                 Dbg.Inf("  Misc commands:");
                 Dbg.Inf("    recachepoint - resets immediate recache timing");
@@ -226,9 +226,12 @@ public static class Prompt
                     int levelmin = int.Parse(scrmatch.Groups["levelmin"].Value);
                     int levelmax = int.Parse(scrmatch.Groups["levelmax"].Value);
 
+                    int starsmin = scrmatch.Groups["starsmin"].Length > 0 ? int.Parse(scrmatch.Groups["starsmin"].Value) : -1;
+                    int starsmax = scrmatch.Groups["starsmax"].Length > 0 ? int.Parse(scrmatch.Groups["starsmax"].Value) : -1;
+
                     bool sourceNotEmpty = Sourced.Count != 0;
 
-                    SourceAddCraftElements(role, levelmin, levelmax);
+                    SourceAddCraftElements(role, levelmin, starsmin, levelmax, starsmax);
 
                     SourceDoAnalysis();
                     if (sourceNotEmpty)
@@ -995,7 +998,7 @@ public static class Prompt
     }
 
     private static HashSet<SaintCoinach.Xiv.Recipe> standardRecipes;
-    public static void SourceAddCraftElements(string role, int minlevel, int maxlevel)
+    public static void SourceAddCraftElements(string role, int minlevel, int minstars, int maxlevel, int maxstars)
     {
         if (standardRecipes == null)
         {
@@ -1020,7 +1023,8 @@ public static class Prompt
             }
         }
 
-        foreach (var recipe in standardRecipes.Where(recipe => {
+        foreach (var recipe in standardRecipes.Where(recipe =>
+            {
                 var result = recipe.ResultItem;
                 int resultId = result.Key;
             
@@ -1042,6 +1046,7 @@ public static class Prompt
 
                 string className = recipe.ClassJob.Name;
                 int classLevel = recipe.RecipeLevelTable.ClassJobLevel;
+                int stars = recipe.RecipeLevelTable.Stars;
 
                 if (recipe.ClassJob.Name != role)
                 {
@@ -1049,6 +1054,16 @@ public static class Prompt
                 }
 
                 if (classLevel < minlevel || classLevel > maxlevel)
+                {
+                    return false;
+                }
+
+                if (classLevel == minlevel && minstars != -1 && stars < minstars)
+                {
+                    return false;
+                }
+
+                if (classLevel == maxlevel && maxstars != -1 && stars > maxstars)
                 {
                     return false;
                 }
